@@ -17,14 +17,15 @@ function App() {
     });
   };
 
-  const handleSubmit = async () => {
+  const handleSubmit = async (e) => {
+    e.preventDefault();
     const ticketData = {
       ticketAmount: data.amount,
       ticketEventId: data.eventId,
       typeId: data.ticketTypeId
     };
     try {
-      const response = await axios.post("localhost:8080/api/sales", {
+      const response = await axios.post("https://ticketguru-tg.rahtiapp.fi/api/sales", {
         amount: ticketData.ticketAmount,
         ticketList: [
           {
@@ -36,12 +37,12 @@ function App() {
             }
           }
         ]
-      }, {
-        auth: {
-          username: 'admin',
-          password: 'admin'
-        }
-      })
+      },   
+      {
+        headers: {
+          'Authorization': `Basic ${btoa("admin:admin")}`,
+        },
+    })
       console.log("data", response.data);
     } catch (error) {
       console.error("Error submitting data: ", error);
