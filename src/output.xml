@@ -1,0 +1,78 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<robot generator="Robot 6.1.1 (Python 3.11.5 on win32)" generated="20231119 15:32:44.845" rpa="false" schemaversion="4">
+<suite id="s1" name="BuyTicketTest" source="C:\Users\katar\Coding\ticketguru-lipunmyynti\tg-client\src\BuyTicketTest.robot">
+<test id="s1-t1" name="View Ticket Page Test Case" line="11">
+<kw name="Open Browser" library="SeleniumLibrary">
+<arg>${URL}</arg>
+<arg>${BROWSER}</arg>
+<doc>Opens a new browser instance to the optional ``url``.</doc>
+<msg timestamp="20231119 15:32:45.215" level="INFO">Opening browser 'Chrome' to base url 'http://localhost:5173'.</msg>
+<status status="PASS" starttime="20231119 15:32:45.215" endtime="20231119 15:32:51.996"/>
+</kw>
+<kw name="Sleep" library="BuiltIn">
+<arg>${SLEEP}</arg>
+<doc>Pauses the test executed for the given time.</doc>
+<msg timestamp="20231119 15:32:54.996" level="INFO">Slept 3 seconds</msg>
+<status status="PASS" starttime="20231119 15:32:51.996" endtime="20231119 15:32:54.996"/>
+</kw>
+<kw name="Page Should Contain" library="SeleniumLibrary">
+<arg>Ticket purchase</arg>
+<doc>Verifies that current page contains ``text``.</doc>
+<msg timestamp="20231119 15:32:54.996" level="INFO">Current page contains text 'Ticket purchase'.</msg>
+<status status="PASS" starttime="20231119 15:32:54.996" endtime="20231119 15:32:54.996"/>
+</kw>
+<status status="PASS" starttime="20231119 15:32:45.215" endtime="20231119 15:32:54.996"/>
+</test>
+<test id="s1-t2" name="Buy New Ticket Test Case" line="16">
+<kw name="Input Text" library="SeleniumLibrary">
+<arg>amount</arg>
+<arg>2</arg>
+<doc>Types the given ``text`` into the text field identified by ``locator``.</doc>
+<msg timestamp="20231119 15:32:55.013" level="INFO">Typing text '2' into text field 'amount'.</msg>
+<status status="PASS" starttime="20231119 15:32:55.013" endtime="20231119 15:32:55.113"/>
+</kw>
+<kw name="Input Text" library="SeleniumLibrary">
+<arg>eventId</arg>
+<arg>1</arg>
+<doc>Types the given ``text`` into the text field identified by ``locator``.</doc>
+<msg timestamp="20231119 15:32:55.114" level="INFO">Typing text '1' into text field 'eventId'.</msg>
+<status status="PASS" starttime="20231119 15:32:55.114" endtime="20231119 15:32:55.179"/>
+</kw>
+<kw name="Input Text" library="SeleniumLibrary">
+<arg>ticketTypeId</arg>
+<arg>1</arg>
+<doc>Types the given ``text`` into the text field identified by ``locator``.</doc>
+<msg timestamp="20231119 15:32:55.179" level="INFO">Typing text '1' into text field 'ticketTypeId'.</msg>
+<status status="PASS" starttime="20231119 15:32:55.179" endtime="20231119 15:32:55.252"/>
+</kw>
+<kw name="Click Button" library="SeleniumLibrary">
+<arg>xpath:(.//button[contains(., 'Buy')])[last()]</arg>
+<doc>Clicks the button identified by ``locator``.</doc>
+<msg timestamp="20231119 15:32:55.253" level="INFO">Clicking button 'xpath:(.//button[contains(., 'Buy')])[last()]'.</msg>
+<status status="PASS" starttime="20231119 15:32:55.253" endtime="20231119 15:32:55.329"/>
+</kw>
+<kw name="Page Should Contain" library="SeleniumLibrary">
+<arg>Ticket bought</arg>
+<doc>Verifies that current page contains ``text``.</doc>
+<msg timestamp="20231119 15:33:05.493" level="INFO" html="true">&lt;/td&gt;&lt;/tr&gt;&lt;tr&gt;&lt;td colspan="3"&gt;&lt;a href="selenium-screenshot-1.png"&gt;&lt;img src="selenium-screenshot-1.png" width="800px"&gt;&lt;/a&gt;</msg>
+<msg timestamp="20231119 15:33:05.493" level="FAIL">Page should have contained text 'Ticket bought' but did not.</msg>
+<status status="FAIL" starttime="20231119 15:32:55.330" endtime="20231119 15:33:05.508"/>
+</kw>
+<status status="FAIL" starttime="20231119 15:32:55.012" endtime="20231119 15:33:05.508">Page should have contained text 'Ticket bought' but did not.</status>
+</test>
+<doc>View TicketGuru</doc>
+<status status="FAIL" starttime="20231119 15:32:44.845" endtime="20231119 15:33:05.508"/>
+</suite>
+<statistics>
+<total>
+<stat pass="1" fail="1" skip="0">All Tests</stat>
+</total>
+<tag>
+</tag>
+<suite>
+<stat pass="1" fail="1" skip="0" id="s1" name="BuyTicketTest">BuyTicketTest</stat>
+</suite>
+</statistics>
+<errors>
+</errors>
+</robot>
