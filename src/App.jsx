@@ -1,43 +1,42 @@
 import { useState, useEffect } from "react";
 import axios from "axios";
-import {
-  Container,
-  TextField,
-  Button,
-  Select,
-  MenuItem,
-  InputLabel,
-  FormControl,
-  Table,
-  TableBody,
-  TableCell,
-  TableContainer,
-  TableHead,
-  TableRow,
-  Paper,
-  Alert,
-  Snackbar,
-} from "@mui/material";
+import { Container, Alert, Snackbar, Tabs, Tab, Box } from "@mui/material";
+import BuyTickets from "./components/BuyTickets";
+import PurchaseHistory from "./components/PurchaseHistory";
+import CreateEvent from "./components/Events";
 
 function App() {
-  const [data, setData] = useState({
+  const [salesData, setSalesData] = useState({
     amount: "",
     eventId: "",
     ticketTypeId: "",
   });
+  const [eventData, setEventData] = useState({
+    name: "",
+    date: "",
+    time: "",
+    venueId: "",
+  });
 
   const [sales, setSales] = useState([]);
   const [events, setEvents] = useState([]);
+  const [venues, setVenues] = useState([]);
   const [ticketTypes, setTicketTypes] = useState([]);
   const [snackbar, setSnackbar] = useState({
     open: false,
     message: "",
     severity: "success",
   });
+  const [currentTab, setCurrentTab] = useState("buyTickets");
+
+  const handleTabChange = (event, newValue) => {
+    setCurrentTab(newValue);
+  };
+
   const handleChange = (e) => {
     const value = e.target.value;
-    setData({
-      ...data,
+    setSalesData({
+      ...salesData,
       [e.target.name]: value,
     });
   };
@@ -61,12 +60,12 @@ function App() {
     fetchSalesData();
   }, []);
 
-  const handleSubmit = async (e) => {
+  const handleSalesSubmit = async (e) => {
     e.preventDefault();
     const ticketData = {
-      ticketAmount: data.amount,
-      ticketEventId: data.eventId,
-      typeId: data.ticketTypeId,
+      ticketAmount: salesData.amount,
+      ticketEventId: salesData.eventId,
+      typeId: salesData.ticketTypeId,
     };
 
     try {
@@ -101,6 +100,39 @@ function App() {
     }
   };
 
+  const handleEventSubmit = async (e) => {
+    e.preventDefault();
+
+    const payload = {
+      name: eventData.name,
+      date: eventData.date,
+      time: eventData.time,
+      venue: { venueId: parseInt(eventData.venueId) },
+    };
+
+    try {
+      const response = await axios.post("http://ticketguru-tg.rahtiapp.fi/api/events", payload, {
+        headers: {
+          Authorization: `Basic ${btoa("admin:admin")}`,
+        },
+      });
+      console.log("Event created:", response.data);
+      setSnackbar({ open: true, message: "Event created successfully!", severity: "success" });
+      // Reset the eventData state if needed
+      setEventData({
+        name: "",
+        date: "",
+        time: "",
+        venueId: "",
+      });
+      // Fetch the updated events data to reflect in the UI
+      //fetchEvents();
+    } catch (error) {
+      console.error("Failed to create event:", error);
+      setSnackbar({ open: true, message: "Failed to create event.", severity: "error" });
+    }
+  };
+
   useEffect(() => {
     const fetchEventsAndTicketTypes = async () => {
       try {
@@ -117,6 +149,13 @@ function App() {
           },
         });
         setTicketTypes(ticketTypesResponse.data);
+
+        const venuesResponse = await axios.get("https://ticketguru-tg.rahtiapp.fi/api/venues", {
+          headers: {
+            Authorization: `Basic ${btoa("admin:admin")}`,
+          },
+        });
+        setVenues(venuesResponse.data);
       } catch (error) {
         console.error("Error fetching data: ", error);
       }
@@ -132,6 +171,19 @@ function App() {
     setSnackbar({ ...snackbar, open: false });
   };
 
+  const renderTabContent = () => {
+    switch (currentTab) {
+      case "buyTickets":
+        return <BuyTickets {...{ data: salesData, setData: setSalesData, handleChange, handleSubmit: handleSalesSubmit, events, ticketTypes }} />;
+      case "createEvent":
+        return <CreateEvent {...{ eventData, setEventData, venues, handleSubmit: handleEventSubmit }} />;
+      case "purchaseHistory":
+        return <PurchaseHistory {...{ sales }} />;
+      default:
+        return null;
+    }
+  };
+
   return (
     <Container>
       <Snackbar
@@ -144,95 +196,13 @@ function App() {
           {snackbar.message}
         </Alert>
       </Snackbar>
-      <h1>Ticket purchase</h1>
-      <form onSubmit={handleSubmit}>
-        <TextField label="Amount" type="text" name="amount" value={data.amount} onChange={handleChange} margin="normal" fullWidth />
+      <Tabs value={currentTab} onChange={handleTabChange} centered>
+        <Tab label="Buy Tickets" value="buyTickets" />
+        <Tab label="Create Event" value="createEvent" />
+        <Tab label="Purchase History" value="purchaseHistory" />
+      </Tabs>
 
-        <FormControl fullWidth margin="normal">
-          <InputLabel id="event-label">Event ID</InputLabel>
-          <Select labelId="event-label" id="event-select" name="eventId" value={data.eventId} onChange={handleChange} label="Event ID">
-            <MenuItem value="">
-              <em>Select Event</em>
-            </MenuItem>
-            {events.map((event) => (
-              <MenuItem key={event.eventId} value={event.eventId.toString()}>
-                {event.name} - {event.date}
-              </MenuItem>
-            ))}
-          </Select>
-        </FormControl>
-
-        <FormControl fullWidth margin="normal">
-          <InputLabel id="ticket-type-label">Ticket Type</InputLabel>
-          <Select
-            labelId="ticket-type-label"
-            id="ticketType-select"
-            name="ticketTypeId"
-            value={data.ticketTypeId}
-            onChange={handleChange}
-            label="Ticket Type"
-          >
-            <MenuItem value="">
-              <em>Select Ticket Type</em>
-            </MenuItem>
-            {ticketTypes
-              .filter((type) => type.event.eventId.toString() === data.eventId)
-              .map((type) => (
-                <MenuItem key={type.ticketTypeId} value={type.ticketTypeId.toString()}>
-                  {type.ticketName} - {type.description}
-                </MenuItem>
-              ))}
-          </Select>
-        </FormControl>
-
-        <Button type="submit" variant="contained" color="primary" disabled={!data.eventId || !data.ticketTypeId || !data.amount}>
-          Buy
-        </Button>
-      </form>
-
-      <h2>Sales Data</h2>
-      <TableContainer component={Paper}>
-        <Table aria-label="sales data">
-          <TableHead>
-            <TableRow>
-              <TableCell>Sale ID</TableCell>
-              <TableCell>Date</TableCell>
-              <TableCell>Time</TableCell>
-              <TableCell>Amount</TableCell>
-              <TableCell>Event</TableCell>
-              <TableCell>Venue</TableCell>
-              <TableCell>Ticket Type</TableCell>
-              <TableCell>Price</TableCell>
-              <TableCell>Barcode</TableCell>
-              <TableCell>Checked In</TableCell>
-            </TableRow>
-          </TableHead>
-          <TableBody>
-            {[...sales].reverse().map((sale) =>
-              sale.ticketList.map((ticket) => (
-                <TableRow key={ticket.ticketId}>
-                  <TableCell>{sale.saleEventId}</TableCell>
-                  <TableCell>{sale.saleDate}</TableCell>
-                  <TableCell>{sale.saleTime}</TableCell>
-                  <TableCell>{sale.amount}</TableCell>
-                  <TableCell>
-                    {ticket.event.name} on {ticket.event.date} at {ticket.event.time}
-                  </TableCell>
-                  <TableCell>
-                    {ticket.event.venue.name}, {ticket.event.venue.address}, {ticket.event.venue.city}
-                  </TableCell>
-                  <TableCell>
-                    {ticket.ticketType.ticketName} - {ticket.ticketType.description}
-                  </TableCell>
-                  <TableCell>${ticket.ticketType.price.toFixed(2)}</TableCell>
-                  <TableCell>{ticket.barcode}</TableCell>
-                  <TableCell>{ticket.isChecked ? "Yes" : "No"}</TableCell>
-                </TableRow>
-              ))
-            )}
-          </TableBody>
-        </Table>
-      </TableContainer>
+      <Box sx={{ paddingTop: 2 }}>{renderTabContent()}</Box>
     </Container>
   );
 }
