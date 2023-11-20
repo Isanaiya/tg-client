@@ -111,7 +111,7 @@ function App() {
     };
 
     try {
-      const response = await axios.post("http://ticketguru-tg.rahtiapp.fi/api/events", payload, {
+      const response = await axios.post("https://ticketguru-tg.rahtiapp.fi/api/events", payload, {
         headers: {
           Authorization: `Basic ${btoa("admin:admin")}`,
         },

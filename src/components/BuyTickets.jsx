@@ -1,4 +1,3 @@
-// BuyTickets.js
 import { TextField, Button, Select, MenuItem, InputLabel, FormControl } from "@mui/material";
 import PropTypes from "prop-types";
 
