@@ -118,18 +118,41 @@ function App() {
       });
       console.log("Event created:", response.data);
       setSnackbar({ open: true, message: "Event created successfully!", severity: "success" });
-      // Reset the eventData state if needed
       setEventData({
         name: "",
         date: "",
         time: "",
         venueId: "",
       });
-      // Fetch the updated events data to reflect in the UI
-      //fetchEvents();
     } catch (error) {
       console.error("Failed to create event:", error);
       setSnackbar({ open: true, message: "Failed to create event.", severity: "error" });
+    }
+  };
+
+  const handleCreateTicketType = async (e, ticketTypeData) => {
+    e.preventDefault();
+    // Format your payload as required by your API
+    const payload = {
+      price: Number(ticketTypeData.price),
+      ticketName: ticketTypeData.ticketName,
+      description: ticketTypeData.description,
+      event: {
+        eventId: Number(ticketTypeData.eventId),
+      },
+    };
+
+    try {
+      const response = await axios.post("http://ticketguru-tg.rahtiapp.fi/api/tickettypes", payload, {
+        headers: {
+          Authorization: `Basic ${btoa("admin:admin")}`,
+        },
+      });
+      console.log("Ticket type created:", response.data);
+      setSnackbar({ open: true, message: "Ticket type created successfully!", severity: "success" });
+    } catch (error) {
+      console.error("Failed to create ticket type:", error);
+      setSnackbar({ open: true, message: "Failed to create ticket type.", severity: "error" });
     }
   };
 
@@ -176,7 +199,7 @@ function App() {
       case "buyTickets":
         return <BuyTickets {...{ data: salesData, setData: setSalesData, handleChange, handleSubmit: handleSalesSubmit, events, ticketTypes }} />;
       case "createEvent":
-        return <CreateEvent {...{ eventData, setEventData, venues, handleSubmit: handleEventSubmit }} />;
+        return <CreateEvent {...{ eventData, setEventData, venues, handleSubmit: handleEventSubmit, events, handleCreateTicketType }} />;
       case "purchaseHistory":
         return <PurchaseHistory {...{ sales }} />;
       default:

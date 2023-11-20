@@ -1,13 +1,28 @@
+import { useState } from "react";
 import { Container, TextField, Button, FormControl, InputLabel, Select, MenuItem } from "@mui/material";
 import PropTypes from "prop-types";
 
-const CreateEvent = ({ eventData, setEventData, venues, handleSubmit }) => {
+const CreateEvent = ({ eventData, setEventData, venues, handleSubmit, events, handleCreateTicketType }) => {
   const handleChange = (e) => {
     const { name, value } = e.target;
     setEventData({ ...eventData, [name]: value });
   };
 
   const isFormValid = eventData.name && eventData.date && eventData.time && eventData.venueId;
+
+  const [ticketTypeData, setTicketTypeData] = useState({
+    price: "",
+    ticketName: "",
+    description: "",
+    eventId: "",
+  });
+
+  const handleChangeTicketType = (e) => {
+    const { name, value } = e.target;
+    setTicketTypeData({ ...ticketTypeData, [name]: value });
+  };
+
+  const isTicketTypeFormValid = ticketTypeData.price && ticketTypeData.ticketName && ticketTypeData.description && ticketTypeData.eventId;
 
   return (
     <Container>
@@ -55,6 +70,48 @@ const CreateEvent = ({ eventData, setEventData, venues, handleSubmit }) => {
           Create Event
         </Button>
       </form>
+      <h2>Create Ticket Type</h2>
+      <form onSubmit={(e) => handleCreateTicketType(e, ticketTypeData)}>
+        <FormControl fullWidth margin="normal">
+          <InputLabel id="event-select-label">Event</InputLabel>
+          <Select labelId="event-select-label" name="eventId" value={ticketTypeData.eventId} onChange={handleChangeTicketType} label="Event">
+            {events.map((event) => (
+              <MenuItem key={event.eventId} value={event.eventId}>
+                {event.name}
+              </MenuItem>
+            ))}
+          </Select>
+        </FormControl>
+        <TextField
+          label="Ticket Name"
+          name="ticketName"
+          value={ticketTypeData.ticketName}
+          onChange={handleChangeTicketType}
+          margin="normal"
+          fullWidth
+        />
+        <TextField
+          label="Description"
+          name="description"
+          value={ticketTypeData.description}
+          onChange={handleChangeTicketType}
+          margin="normal"
+          fullWidth
+        />
+        <TextField
+          label="Price"
+          name="price"
+          type="number"
+          value={ticketTypeData.price}
+          onChange={handleChangeTicketType}
+          margin="normal"
+          fullWidth
+        />
+
+        <Button type="submit" variant="contained" color="primary" disabled={!isTicketTypeFormValid}>
+          Create Ticket Type
+        </Button>
+      </form>
     </Container>
   );
 };
@@ -77,6 +134,13 @@ CreateEvent.propTypes = {
     })
   ).isRequired,
   handleSubmit: PropTypes.func.isRequired,
+  events: PropTypes.arrayOf(
+    PropTypes.shape({
+      eventId: PropTypes.number.isRequired,
+      name: PropTypes.string.isRequired,
+    })
+  ).isRequired,
+  handleCreateTicketType: PropTypes.func.isRequired,
 };
 
 export default CreateEvent;
