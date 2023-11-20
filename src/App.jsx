@@ -1,5 +1,23 @@
 import { useState, useEffect } from "react";
 import axios from "axios";
+import {
+  Container,
+  TextField,
+  Button,
+  Select,
+  MenuItem,
+  InputLabel,
+  FormControl,
+  Table,
+  TableBody,
+  TableCell,
+  TableContainer,
+  TableHead,
+  TableRow,
+  Paper,
+  Alert,
+  Snackbar,
+} from "@mui/material";
 
 function App() {
   const [data, setData] = useState({
@@ -11,7 +29,11 @@ function App() {
   const [sales, setSales] = useState([]);
   const [events, setEvents] = useState([]);
   const [ticketTypes, setTicketTypes] = useState([]);
-
+  const [snackbar, setSnackbar] = useState({
+    open: false,
+    message: "",
+    severity: "success",
+  });
   const handleChange = (e) => {
     const value = e.target.value;
     setData({
@@ -70,10 +92,12 @@ function App() {
         }
       );
       console.log("data", response.data);
+      setSnackbar({ open: true, message: "Purchase successful!", severity: "success" });
       // Fetch the updated sales data after a successful POST request
       fetchSalesData();
     } catch (error) {
       console.error("Error submitting data: ", error);
+      setSnackbar({ open: true, message: "Purchase failed!", severity: "error" });
     }
   };
 
@@ -101,82 +125,115 @@ function App() {
     fetchEventsAndTicketTypes();
   }, []);
 
+  const handleCloseSnackbar = (event, reason) => {
+    if (reason === "clickaway") {
+      return;
+    }
+    setSnackbar({ ...snackbar, open: false });
+  };
+
   return (
-    <div>
+    <Container>
+      <Snackbar
+        open={snackbar.open}
+        autoHideDuration={6000}
+        onClose={handleCloseSnackbar}
+        anchorOrigin={{ vertical: "bottom", horizontal: "center" }}
+      >
+        <Alert onClose={handleCloseSnackbar} severity={snackbar.severity} sx={{ width: "100%" }}>
+          {snackbar.message}
+        </Alert>
+      </Snackbar>
       <h1>Ticket purchase</h1>
       <form onSubmit={handleSubmit}>
-        <label htmlFor="amount">Amount</label>
-        <input type="text" name="amount" value={data.amount} onChange={handleChange} />
-        <br />
+        <TextField label="Amount" type="text" name="amount" value={data.amount} onChange={handleChange} margin="normal" fullWidth />
 
-        <label htmlFor="eventId">Event ID</label>
-        <select name="eventId" value={data.eventId} onChange={handleChange}>
-          <option value="">Select Event</option>
-          {events.map((event) => (
-            <option key={event.eventId} value={event.eventId}>
-              {event.name} - {event.date}
-            </option>
-          ))}
-        </select>
-        <br />
-
-        <label htmlFor="ticketTypeId">Ticket Type</label>
-        <select name="ticketTypeId" value={data.ticketTypeId} onChange={handleChange}>
-          <option value="">Select Ticket Type</option>
-          {ticketTypes
-            .filter((type) => type.event.eventId.toString() === data.eventId)
-            .map((type) => (
-              <option key={type.ticketTypeId} value={type.ticketTypeId}>
-                {type.ticketName} - {type.description}
-              </option>
+        <FormControl fullWidth margin="normal">
+          <InputLabel id="event-label">Event ID</InputLabel>
+          <Select labelId="event-label" id="event-select" name="eventId" value={data.eventId} onChange={handleChange} label="Event ID">
+            <MenuItem value="">
+              <em>Select Event</em>
+            </MenuItem>
+            {events.map((event) => (
+              <MenuItem key={event.eventId} value={event.eventId.toString()}>
+                {event.name} - {event.date}
+              </MenuItem>
             ))}
-        </select>
-        <br />
-        <button type="submit">Buy</button>
+          </Select>
+        </FormControl>
+
+        <FormControl fullWidth margin="normal">
+          <InputLabel id="ticket-type-label">Ticket Type</InputLabel>
+          <Select
+            labelId="ticket-type-label"
+            id="ticketType-select"
+            name="ticketTypeId"
+            value={data.ticketTypeId}
+            onChange={handleChange}
+            label="Ticket Type"
+          >
+            <MenuItem value="">
+              <em>Select Ticket Type</em>
+            </MenuItem>
+            {ticketTypes
+              .filter((type) => type.event.eventId.toString() === data.eventId)
+              .map((type) => (
+                <MenuItem key={type.ticketTypeId} value={type.ticketTypeId.toString()}>
+                  {type.ticketName} - {type.description}
+                </MenuItem>
+              ))}
+          </Select>
+        </FormControl>
+
+        <Button type="submit" variant="contained" color="primary" disabled={!data.eventId || !data.ticketTypeId || !data.amount}>
+          Buy
+        </Button>
       </form>
 
       <h2>Sales Data</h2>
-      <table>
-        <thead>
-          <tr>
-            <th>Sale ID</th>
-            <th>Date</th>
-            <th>Time</th>
-            <th>Amount</th>
-            <th>Event</th>
-            <th>Venue</th>
-            <th>Ticket Type</th>
-            <th>Price</th>
-            <th>Barcode</th>
-            <th>Checked In</th>
-          </tr>
-        </thead>
-        <tbody>
-          {sales.map((sale) =>
-            sale.ticketList.map((ticket) => (
-              <tr key={ticket.ticketId}>
-                <td>{sale.saleEventId}</td>
-                <td>{sale.saleDate}</td>
-                <td>{sale.saleTime}</td>
-                <td>{sale.amount}</td>
-                <td>
-                  {ticket.event.name} on {ticket.event.date} at {ticket.event.time}
-                </td>
-                <td>
-                  {ticket.event.venue.name}, {ticket.event.venue.address}, {ticket.event.venue.city}
-                </td>
-                <td>
-                  {ticket.ticketType.ticketName} - {ticket.ticketType.description}
-                </td>
-                <td>${ticket.ticketType.price.toFixed(2)}</td>
-                <td>{ticket.barcode}</td>
-                <td>{ticket.isChecked ? "Yes" : "No"}</td>
-              </tr>
-            ))
-          )}
-        </tbody>
-      </table>
-    </div>
+      <TableContainer component={Paper}>
+        <Table aria-label="sales data">
+          <TableHead>
+            <TableRow>
+              <TableCell>Sale ID</TableCell>
+              <TableCell>Date</TableCell>
+              <TableCell>Time</TableCell>
+              <TableCell>Amount</TableCell>
+              <TableCell>Event</TableCell>
+              <TableCell>Venue</TableCell>
+              <TableCell>Ticket Type</TableCell>
+              <TableCell>Price</TableCell>
+              <TableCell>Barcode</TableCell>
+              <TableCell>Checked In</TableCell>
+            </TableRow>
+          </TableHead>
+          <TableBody>
+            {[...sales].reverse().map((sale) =>
+              sale.ticketList.map((ticket) => (
+                <TableRow key={ticket.ticketId}>
+                  <TableCell>{sale.saleEventId}</TableCell>
+                  <TableCell>{sale.saleDate}</TableCell>
+                  <TableCell>{sale.saleTime}</TableCell>
+                  <TableCell>{sale.amount}</TableCell>
+                  <TableCell>
+                    {ticket.event.name} on {ticket.event.date} at {ticket.event.time}
+                  </TableCell>
+                  <TableCell>
+                    {ticket.event.venue.name}, {ticket.event.venue.address}, {ticket.event.venue.city}
+                  </TableCell>
+                  <TableCell>
+                    {ticket.ticketType.ticketName} - {ticket.ticketType.description}
+                  </TableCell>
+                  <TableCell>${ticket.ticketType.price.toFixed(2)}</TableCell>
+                  <TableCell>{ticket.barcode}</TableCell>
+                  <TableCell>{ticket.isChecked ? "Yes" : "No"}</TableCell>
+                </TableRow>
+              ))
+            )}
+          </TableBody>
+        </Table>
+      </TableContainer>
+    </Container>
   );
 }
 
