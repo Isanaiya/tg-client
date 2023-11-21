@@ -5,7 +5,7 @@ const BuyTickets = ({ data, handleChange, handleSubmit: handleSalesSubmit, event
   return (
     <>
       <h1>Ticket purchase</h1>
-      <form onSubmit={handleSalesSubmit}>
+      <form style={{ width: 500 }} onSubmit={handleSalesSubmit}>
         <TextField label="Amount" type="text" name="amount" value={data.amount} onChange={handleChange} margin="normal" fullWidth />
 
         <FormControl fullWidth margin="normal">
