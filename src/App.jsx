@@ -220,7 +220,7 @@ function App() {
         </Alert>
       </Snackbar>
       <Tabs value={currentTab} onChange={handleTabChange} centered>
-        <Tab label="Buy Tickets" value="buyTickets" />
+        <Tab label="Purchase Tickets" value="buyTickets" />
         <Tab label="Create Event" value="createEvent" />
         <Tab label="Purchase History" value="purchaseHistory" />
       </Tabs>
