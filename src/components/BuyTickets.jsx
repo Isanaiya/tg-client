@@ -1,7 +1,8 @@
-import { TextField, Button, Select, MenuItem, InputLabel, FormControl } from "@mui/material";
+import { TextField, Button, Select, MenuItem, InputLabel, FormControl, Box } from "@mui/material";
 import PropTypes from "prop-types";
+import QRCode from "qrcode.react";
 
-const BuyTickets = ({ data, handleChange, handleSubmit: handleSalesSubmit, events, ticketTypes }) => {
+const BuyTickets = ({ data, handleChange, handleSubmit: handleSalesSubmit, events, ticketTypes, ticket }) => {
   return (
     <>
       <h1>Ticket purchase</h1>
@@ -49,6 +50,41 @@ const BuyTickets = ({ data, handleChange, handleSubmit: handleSalesSubmit, event
           Buy
         </Button>
       </form>
+
+      {ticket && (
+        <Box>
+          <h2>Ticket Purchase Details</h2>
+          <p>Sale Event ID: {ticket.saleEventId}</p>
+          <p>Sale Date: {ticket.saleDate}</p>
+          <p>Sale Time: {ticket.saleTime}</p>
+          <p>Amount: {ticket.amount}</p>
+
+          {ticket.ticketList &&
+            ticket.ticketList
+              .filter((item) => typeof item === "object")
+              .map((ticketItem, index) => (
+                <Box key={ticketItem.ticketId || index} sx={{ marginTop: 2, border: "1px solid black", padding: 2 }}>
+                  <p>Barcode: {ticketItem.barcode}</p>
+                  {ticketItem.event && ticketItem.event.eventId && (
+                    <>
+                      <p>Event Name: {ticketItem.event.name || "N/A"}</p>
+                      <p>Event Date: {ticketItem.event.date || "N/A"}</p>
+                      <p>Event Time: {ticketItem.event.time || "N/A"}</p>
+                      {ticketItem.event.venue && <p>Venue: {ticketItem.event.venue.name || "N/A"}</p>}
+                    </>
+                  )}
+                  {ticketItem.ticketType && ticketItem.ticketType.ticketTypeId && (
+                    <>
+                      <p>Ticket Type: {ticketItem.ticketType.ticketName || "N/A"}</p>
+                      <p>Price: {ticketItem.ticketType.price || "N/A"}</p>
+                      <p>Description: {ticketItem.ticketType.description || "N/A"}</p>
+                    </>
+                  )}
+                  <QRCode value={ticketItem.barcode} size={128} includeMargin={true} />
+                </Box>
+              ))}
+        </Box>
+      )}
     </>
   );
 };
@@ -78,6 +114,34 @@ BuyTickets.propTypes = {
       }),
     })
   ),
+  ticket: PropTypes.shape({
+    saleEventId: PropTypes.number,
+    saleDate: PropTypes.string,
+    saleTime: PropTypes.string,
+    amount: PropTypes.number,
+    ticketList: PropTypes.arrayOf(
+      PropTypes.shape({
+        ticketId: PropTypes.number,
+        barcode: PropTypes.string,
+        isChecked: PropTypes.bool,
+        event: PropTypes.shape({
+          eventId: PropTypes.number,
+          venue: PropTypes.shape({
+            name: PropTypes.string,
+          }),
+          name: PropTypes.string,
+          date: PropTypes.string,
+          time: PropTypes.string,
+        }),
+        ticketType: PropTypes.shape({
+          ticketTypeId: PropTypes.number,
+          price: PropTypes.number,
+          ticketName: PropTypes.string,
+          description: PropTypes.string,
+        }),
+      })
+    ),
+  }),
 };
 
 export default BuyTickets;
