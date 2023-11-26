@@ -75,6 +75,7 @@ function App() {
   const [events, setEvents] = useState([]);
   const [venues, setVenues] = useState([]);
   const [ticket, setTicket] = useState(null);
+
   const [ticketTypes, setTicketTypes] = useState([]);
   const [snackbar, setSnackbar] = useState({
     open: false,
@@ -138,7 +139,6 @@ function App() {
         console.log("GET response data", getResponse.data);
         setTicket(getResponse.data);
       }
-
       setSnackbar({ open: true, message: "Purchase successful!", severity: "success" });
     } catch (error) {
       console.error("Error during the sale process: ", error);
@@ -221,9 +221,7 @@ function App() {
     }
     switch (currentTab) {
       case "buyTickets":
-        return (
-          <BuyTickets {...{ data: salesData, setData: setSalesData, handleChange, handleSubmit: handleSalesSubmit, events, ticketTypes, ticket }} />
-        );
+        return <BuyTickets {...{ data: salesData, setData: setSalesData, handleChange, handleSubmit: handleSalesSubmit, events, ticketTypes, ticket }} />;
       case "createEvent":
         return <CreateEvent {...{ eventData, setEventData, venues, handleSubmit: handleEventSubmit, events, handleCreateTicketType }} />;
       case "purchaseHistory":
