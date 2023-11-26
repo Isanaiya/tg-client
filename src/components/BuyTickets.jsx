@@ -1,7 +1,8 @@
-import { TextField, Button, Select, MenuItem, InputLabel, FormControl } from "@mui/material";
+import { TextField, Button, Select, MenuItem, InputLabel, FormControl, Box } from "@mui/material";
 import PropTypes from "prop-types";
+import QRCode from "qrcode.react";
 
-const BuyTickets = ({ data, handleChange, handleSubmit: handleSalesSubmit, events, ticketTypes }) => {
+const BuyTickets = ({ data, handleChange, handleSubmit: handleSalesSubmit, events, ticketTypes, ticket }) => {
   return (
     <>
       <h1>Ticket purchase</h1>
@@ -49,6 +50,21 @@ const BuyTickets = ({ data, handleChange, handleSubmit: handleSalesSubmit, event
           Buy
         </Button>
       </form>
+     
+      { ticket.length > 0 && (
+        <Box>
+          <h2>Ticket</h2>
+          <QRCode value={ticket.ticketList.ticketId} size={256} includeMargin={true} />
+          <p>Amount: {ticket.amount}</p>
+          <p>Event: {ticket.ticketList.event.name} </p>
+          <p>Date: {ticket.ticketList.event.date} </p>
+          <p>Time: {ticket.ticketList.event.time} </p>
+          <p>Venue: {ticket.ticketList.event.venue.name} </p>
+          <p>Ticket type: {ticket.ticketList.ticketType.ticketName} </p>
+          <p>Price: {ticket.ticketList.ticketType.price}</p>
+        </Box> 
+      )}
+
     </>
   );
 };
@@ -76,6 +92,36 @@ BuyTickets.propTypes = {
       event: PropTypes.shape({
         eventId: PropTypes.number.isRequired,
       }),
+    })
+  ),
+  ticket: PropTypes.arrayOf(
+    PropTypes.shape({
+      saleEventId: PropTypes.number.isRequired,
+      saleDate: PropTypes.string.isRequired,
+      saleTime: PropTypes.string.isRequired,
+      amount: PropTypes.number.isRequired,
+      ticketList: PropTypes.arrayOf(
+        PropTypes.shape({
+          ticketId: PropTypes.number.isRequired,
+          event: PropTypes.shape({
+            name: PropTypes.string.isRequired,
+            date: PropTypes.string.isRequired,
+            time: PropTypes.string.isRequired,
+            venue: PropTypes.shape({
+              name: PropTypes.string.isRequired,
+              address: PropTypes.string.isRequired,
+              city: PropTypes.string.isRequired,
+            }),
+          }),
+          ticketType: PropTypes.shape({
+            ticketName: PropTypes.string.isRequired,
+            description: PropTypes.string,
+            price: PropTypes.number.isRequired,
+          }),
+          barcode: PropTypes.string.isRequired,
+          isChecked: PropTypes.bool.isRequired,
+        })
+      ),
     })
   ),
 };

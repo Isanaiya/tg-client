@@ -21,6 +21,7 @@ function App() {
   const [sales, setSales] = useState([]);
   const [events, setEvents] = useState([]);
   const [venues, setVenues] = useState([]);
+  const [ticket, setTicket] = useState([]);
   const [ticketTypes, setTicketTypes] = useState([]);
   const [snackbar, setSnackbar] = useState({
     open: false,
@@ -91,6 +92,7 @@ function App() {
         }
       );
       console.log("data", response.data);
+      setTicket(response.data);
       setSnackbar({ open: true, message: "Purchase successful!", severity: "success" });
       // Fetch the updated sales data after a successful POST request
       fetchSalesData();
@@ -197,7 +199,7 @@ function App() {
   const renderTabContent = () => {
     switch (currentTab) {
       case "buyTickets":
-        return <BuyTickets {...{ data: salesData, setData: setSalesData, handleChange, handleSubmit: handleSalesSubmit, events, ticketTypes }} />;
+        return <BuyTickets {...{ data: salesData, setData: setSalesData, handleChange, handleSubmit: handleSalesSubmit, events, ticketTypes, ticket }} />;
       case "createEvent":
         return <CreateEvent {...{ eventData, setEventData, venues, handleSubmit: handleEventSubmit, events, handleCreateTicketType }} />;
       case "purchaseHistory":
