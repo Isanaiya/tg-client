@@ -1,11 +1,34 @@
 import { useState, useEffect } from "react";
 import axios from "axios";
-import { Container, Alert, Snackbar, Tabs, Tab, Box } from "@mui/material";
+import { Container, Alert, Snackbar, Tabs, Tab, Box, Button } from "@mui/material";
 import BuyTickets from "./components/BuyTickets";
 import PurchaseHistory from "./components/PurchaseHistory";
 import CreateEvent from "./components/Events";
 
 function App() {
+  const [credentials, setCredentials] = useState({ username: "", password: "" });
+  const [loggedIn, setLoggedIn] = useState(false);
+
+  const onLoginSuccess = () => {
+    setLoggedIn(true);
+    fetchEventsAndTicketTypes();
+    fetchSalesData();
+  };
+
+  const promptForCredentials = () => {
+    const username = window.prompt("Enter your username");
+    const password = window.prompt("Enter your password");
+    setCredentials({ username, password });
+  };
+
+  const setupAxiosInterceptors = (creds) => {
+    axios.interceptors.request.use((config) => {
+      const token = `Basic ${btoa(`${creds.username}:${creds.password}`)}`;
+      config.headers.Authorization = token;
+      return config;
+    });
+  };
+
   const [salesData, setSalesData] = useState({
     amount: "",
     eventId: "",
@@ -18,10 +41,41 @@ function App() {
     venueId: "",
   });
 
+  const login = async () => {
+    try {
+      const response = await axios.get("https://ticketguru-tg.rahtiapp.fi/api/users");
+      console.log("Login response:", response);
+      onLoginSuccess();
+    } catch (error) {
+      console.error("Login error:", error);
+    }
+  };
+
+  const logout = () => {
+    setCredentials({ username: "", password: "" });
+    setLoggedIn(false);
+    axios.interceptors.request.use((config) => {
+      delete config.headers.Authorization;
+      return config;
+    });
+    setSales([]);
+    setEvents([]);
+    setVenues([]);
+    setTicketTypes([]);
+  };
+
+  useEffect(() => {
+    if (credentials.username && credentials.password) {
+      setupAxiosInterceptors(credentials);
+      login();
+    }
+  }, [credentials]);
+
   const [sales, setSales] = useState([]);
   const [events, setEvents] = useState([]);
   const [venues, setVenues] = useState([]);
-  const [ticket, setTicket] = useState([]);
+  const [ticket, setTicket] = useState(null);
+
   const [ticketTypes, setTicketTypes] = useState([]);
   const [snackbar, setSnackbar] = useState({
     open: false,
@@ -42,21 +96,15 @@ function App() {
     });
   };
 
-  // Function to fetch sales data
   const fetchSalesData = async () => {
     try {
-      const response = await axios.get("https://ticketguru-tg.rahtiapp.fi/api/sales", {
-        headers: {
-          Authorization: `Basic ${btoa("admin:admin")}`,
-        },
-      });
+      const response = await axios.get("https://ticketguru-tg.rahtiapp.fi/api/sales");
       setSales(response.data);
     } catch (error) {
       console.error("Error fetching sales data: ", error);
     }
   };
 
-  // Use useEffect to fetch sales data on component mount
   useEffect(() => {
     fetchSalesData();
   }, []);
@@ -70,34 +118,30 @@ function App() {
     };
 
     try {
-      const response = await axios.post(
-        "https://ticketguru-tg.rahtiapp.fi/api/sales",
-        {
-          amount: ticketData.ticketAmount,
-          ticketList: [
-            {
-              event: {
-                eventId: ticketData.ticketEventId,
-              },
-              ticketType: {
-                ticketTypeId: ticketData.typeId,
-              },
+      const postResponse = await axios.post("https://ticketguru-tg.rahtiapp.fi/api/sales", {
+        amount: ticketData.ticketAmount,
+        ticketList: [
+          {
+            event: {
+              eventId: ticketData.ticketEventId,
             },
-          ],
-        },
-        {
-          headers: {
-            Authorization: `Basic ${btoa("admin:admin")}`,
+            ticketType: {
+              ticketTypeId: ticketData.typeId,
+            },
           },
-        }
-      );
-      console.log("data", response.data);
-      setTicket(response.data);
+        ],
+      });
+      console.log("POST response data", postResponse.data);
+
+      const saleEventId = postResponse.data.saleEventId;
+      if (saleEventId) {
+        const getResponse = await axios.get(`https://ticketguru-tg.rahtiapp.fi/api/sales/${saleEventId}`);
+        console.log("GET response data", getResponse.data);
+        setTicket(getResponse.data);
+      }
       setSnackbar({ open: true, message: "Purchase successful!", severity: "success" });
-      // Fetch the updated sales data after a successful POST request
-      fetchSalesData();
     } catch (error) {
-      console.error("Error submitting data: ", error);
+      console.error("Error during the sale process: ", error);
       setSnackbar({ open: true, message: "Purchase failed!", severity: "error" });
     }
   };
@@ -113,11 +157,7 @@ function App() {
     };
 
     try {
-      const response = await axios.post("https://ticketguru-tg.rahtiapp.fi/api/events", payload, {
-        headers: {
-          Authorization: `Basic ${btoa("admin:admin")}`,
-        },
-      });
+      const response = await axios.post("https://ticketguru-tg.rahtiapp.fi/api/events", payload, {});
       console.log("Event created:", response.data);
       setSnackbar({ open: true, message: "Event created successfully!", severity: "success" });
       setEventData({
@@ -134,7 +174,6 @@ function App() {
 
   const handleCreateTicketType = async (e, ticketTypeData) => {
     e.preventDefault();
-    // Format your payload as required by your API
     const payload = {
       price: Number(ticketTypeData.price),
       ticketName: ticketTypeData.ticketName,
@@ -145,11 +184,7 @@ function App() {
     };
 
     try {
-      const response = await axios.post("http://ticketguru-tg.rahtiapp.fi/api/tickettypes", payload, {
-        headers: {
-          Authorization: `Basic ${btoa("admin:admin")}`,
-        },
-      });
+      const response = await axios.post("https://ticketguru-tg.rahtiapp.fi/api/tickettypes", payload);
       console.log("Ticket type created:", response.data);
       setSnackbar({ open: true, message: "Ticket type created successfully!", severity: "success" });
     } catch (error) {
@@ -158,38 +193,22 @@ function App() {
     }
   };
 
-  useEffect(() => {
-    const fetchEventsAndTicketTypes = async () => {
-      try {
-        const eventsResponse = await axios.get("https://ticketguru-tg.rahtiapp.fi/api/events", {
-          headers: {
-            Authorization: `Basic ${btoa("admin:admin")}`,
-          },
-        });
-        setEvents(eventsResponse.data);
+  const fetchEventsAndTicketTypes = async () => {
+    try {
+      const eventsResponse = await axios.get("https://ticketguru-tg.rahtiapp.fi/api/events");
+      setEvents(eventsResponse.data);
+      console.log(events);
+      const ticketTypesResponse = await axios.get("https://ticketguru-tg.rahtiapp.fi/api/tickettypes");
+      setTicketTypes(ticketTypesResponse.data);
 
-        const ticketTypesResponse = await axios.get("https://ticketguru-tg.rahtiapp.fi/api/tickettypes", {
-          headers: {
-            Authorization: `Basic ${btoa("admin:admin")}`,
-          },
-        });
-        setTicketTypes(ticketTypesResponse.data);
+      const venuesResponse = await axios.get("https://ticketguru-tg.rahtiapp.fi/api/venues");
+      setVenues(venuesResponse.data);
+    } catch (error) {
+      console.error("Error fetching data: ", error);
+    }
+  };
 
-        const venuesResponse = await axios.get("https://ticketguru-tg.rahtiapp.fi/api/venues", {
-          headers: {
-            Authorization: `Basic ${btoa("admin:admin")}`,
-          },
-        });
-        setVenues(venuesResponse.data);
-      } catch (error) {
-        console.error("Error fetching data: ", error);
-      }
-    };
-
-    fetchEventsAndTicketTypes();
-  }, []);
-
-  const handleCloseSnackbar = (event, reason) => {
+  const handleCloseSnackbar = (reason) => {
     if (reason === "clickaway") {
       return;
     }
@@ -197,6 +216,9 @@ function App() {
   };
 
   const renderTabContent = () => {
+    if (!loggedIn) {
+      return <div>Please login</div>;
+    }
     switch (currentTab) {
       case "buyTickets":
         return <BuyTickets {...{ data: salesData, setData: setSalesData, handleChange, handleSubmit: handleSalesSubmit, events, ticketTypes, ticket }} />;
@@ -221,8 +243,9 @@ function App() {
           {snackbar.message}
         </Alert>
       </Snackbar>
+      {loggedIn ? <Button onClick={logout}>Logout</Button> : <Button onClick={promptForCredentials}>Login</Button>}
       <Tabs value={currentTab} onChange={handleTabChange} centered>
-        <Tab label="Purchase Tickets" value="buyTickets" />
+        <Tab label="Buy Tickets" value="buyTickets" />
         <Tab label="Create Event" value="createEvent" />
         <Tab label="Purchase History" value="purchaseHistory" />
       </Tabs>

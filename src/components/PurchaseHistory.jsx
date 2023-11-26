@@ -21,7 +21,7 @@ const PurchaseHistory = ({ sales }) => {
         <Table aria-label="sales data">
           <TableHead>
             <TableRow>
-              <TableCell /> {/* For dropdown icon */}
+              <TableCell />
               <TableCell>Sale ID</TableCell>
               <TableCell>Date</TableCell>
               <TableCell>Time</TableCell>
