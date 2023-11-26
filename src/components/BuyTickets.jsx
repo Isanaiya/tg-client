@@ -3,6 +3,8 @@ import PropTypes from "prop-types";
 import QRCode from "qrcode.react";
 
 const BuyTickets = ({ data, handleChange, handleSubmit: handleSalesSubmit, events, ticketTypes, ticket }) => {
+  const selectedEvent = events.find((event) => event.eventId.toString() === data.eventId);
+
   return (
     <>
       <h1>Ticket purchase</h1>
@@ -45,7 +47,7 @@ const BuyTickets = ({ data, handleChange, handleSubmit: handleSalesSubmit, event
               ))}
           </Select>
         </FormControl>
-
+        {selectedEvent && <p>Tickets Available: {selectedEvent.ticketsAvailable}</p>}
         <Button type="submit" variant="contained" color="primary" disabled={!data.eventId || !data.ticketTypeId || !data.amount}>
           Buy
         </Button>

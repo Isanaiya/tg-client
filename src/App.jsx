@@ -8,11 +8,23 @@ import CreateEvent from "./components/Events";
 function App() {
   const [credentials, setCredentials] = useState({ username: "", password: "" });
   const [loggedIn, setLoggedIn] = useState(false);
-
+  const [sales, setSales] = useState([]);
+  const [events, setEvents] = useState([]);
+  const [venues, setVenues] = useState([]);
+  const [ticket, setTicket] = useState(null);
+  const [eventsWithCapacity, setEventsWithCapacity] = useState([]);
+  const [ticketTypes, setTicketTypes] = useState([]);
+  const [snackbar, setSnackbar] = useState({
+    open: false,
+    message: "",
+    severity: "success",
+  });
+  const [currentTab, setCurrentTab] = useState("buyTickets");
   const onLoginSuccess = () => {
     setLoggedIn(true);
     fetchEventsAndTicketTypes();
     fetchSalesData();
+    fetchEventsAndVenueCapacity();
   };
 
   const promptForCredentials = () => {
@@ -43,7 +55,7 @@ function App() {
 
   const login = async () => {
     try {
-      const response = await axios.get("https://ticketguru-tg.rahtiapp.fi/api/users");
+      const response = await axios.get("https://ticketguru-tg.rahtiapp.fi/api/events");
       console.log("Login response:", response);
       onLoginSuccess();
     } catch (error) {
@@ -71,29 +83,25 @@ function App() {
     }
   }, [credentials]);
 
-  const [sales, setSales] = useState([]);
-  const [events, setEvents] = useState([]);
-  const [venues, setVenues] = useState([]);
-  const [ticket, setTicket] = useState(null);
-
-  const [ticketTypes, setTicketTypes] = useState([]);
-  const [snackbar, setSnackbar] = useState({
-    open: false,
-    message: "",
-    severity: "success",
-  });
-  const [currentTab, setCurrentTab] = useState("buyTickets");
-
   const handleTabChange = (event, newValue) => {
     setCurrentTab(newValue);
   };
 
   const handleChange = (e) => {
-    const value = e.target.value;
-    setSalesData({
-      ...salesData,
-      [e.target.name]: value,
-    });
+    const { name, value } = e.target;
+
+    if (name === "eventId") {
+      setSalesData({
+        ...salesData,
+        ticketTypeId: "",
+        [name]: value,
+      });
+    } else {
+      setSalesData({
+        ...salesData,
+        [name]: value,
+      });
+    }
   };
 
   const fetchSalesData = async () => {
@@ -108,6 +116,12 @@ function App() {
   useEffect(() => {
     fetchSalesData();
   }, []);
+
+  useEffect(() => {
+    if (eventsWithCapacity.length > 0) {
+      updateTicketsSold();
+    }
+  }, [eventsWithCapacity]);
 
   const handleSalesSubmit = async (e) => {
     e.preventDefault();
@@ -131,12 +145,10 @@ function App() {
           },
         ],
       });
-      console.log("POST response data", postResponse.data);
 
       const saleEventId = postResponse.data.saleEventId;
       if (saleEventId) {
         const getResponse = await axios.get(`https://ticketguru-tg.rahtiapp.fi/api/sales/${saleEventId}`);
-        console.log("GET response data", getResponse.data);
         setTicket(getResponse.data);
       }
       setSnackbar({ open: true, message: "Purchase successful!", severity: "success" });
@@ -158,7 +170,6 @@ function App() {
 
     try {
       const response = await axios.post("https://ticketguru-tg.rahtiapp.fi/api/events", payload, {});
-      console.log("Event created:", response.data);
       setSnackbar({ open: true, message: "Event created successfully!", severity: "success" });
       setEventData({
         name: "",
@@ -166,6 +177,10 @@ function App() {
         time: "",
         venueId: "",
       });
+
+      if (response.status === 200) {
+        fetchEventsAndVenueCapacity();
+      }
     } catch (error) {
       console.error("Failed to create event:", error);
       setSnackbar({ open: true, message: "Failed to create event.", severity: "error" });
@@ -197,7 +212,6 @@ function App() {
     try {
       const eventsResponse = await axios.get("https://ticketguru-tg.rahtiapp.fi/api/events");
       setEvents(eventsResponse.data);
-      console.log(events);
       const ticketTypesResponse = await axios.get("https://ticketguru-tg.rahtiapp.fi/api/tickettypes");
       setTicketTypes(ticketTypesResponse.data);
 
@@ -205,6 +219,43 @@ function App() {
       setVenues(venuesResponse.data);
     } catch (error) {
       console.error("Error fetching data: ", error);
+    }
+  };
+
+  const fetchEventsAndVenueCapacity = async () => {
+    try {
+      const eventsResponse = await axios.get("https://ticketguru-tg.rahtiapp.fi/api/events");
+      const eventsWithCapacityData = eventsResponse.data.map((event) => ({
+        ...event,
+        ticketsSold: 0,
+        ticketsAvailable: event.venue.capacity,
+      }));
+      setEventsWithCapacity(eventsWithCapacityData);
+    } catch (error) {
+      console.error("Error fetching events: ", error);
+    }
+  };
+
+  const updateTicketsSold = async () => {
+    try {
+      const salesResponse = await axios.get("https://ticketguru-tg.rahtiapp.fi/api/sales");
+      const salesData = salesResponse.data;
+
+      const updatedEvents = eventsWithCapacity.map((event) => {
+        const ticketsSoldForEvent = salesData.reduce((acc, sale) => {
+          return sale.ticketList.some((ticket) => ticket.event.eventId === event.eventId) ? acc + sale.amount : acc;
+        }, 0);
+
+        return {
+          ...event,
+          ticketsSold: ticketsSoldForEvent,
+          ticketsAvailable: Math.max(event.venue.capacity - ticketsSoldForEvent, 0),
+        };
+      });
+
+      setEventsWithCapacity(updatedEvents);
+    } catch (error) {
+      console.error("Error fetching sales data: ", error);
     }
   };
 
@@ -221,7 +272,19 @@ function App() {
     }
     switch (currentTab) {
       case "buyTickets":
-        return <BuyTickets {...{ data: salesData, setData: setSalesData, handleChange, handleSubmit: handleSalesSubmit, events, ticketTypes, ticket }} />;
+        return (
+          <BuyTickets
+            {...{
+              data: salesData,
+              setData: setSalesData,
+              handleChange,
+              handleSubmit: handleSalesSubmit,
+              events: eventsWithCapacity,
+              ticketTypes,
+              ticket,
+            }}
+          />
+        );
       case "createEvent":
         return <CreateEvent {...{ eventData, setEventData, venues, handleSubmit: handleEventSubmit, events, handleCreateTicketType }} />;
       case "purchaseHistory":
