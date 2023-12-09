@@ -1,129 +1,128 @@
-import { useState } from "react";
-import { Container, TextField, Button, FormControl, InputLabel, Select, MenuItem } from "@mui/material";
+import React, { useState } from "react";
+import { Table, TableBody, TableCell, TableContainer, TableHead, TableRow, Paper, Collapse, Box, IconButton, Button } from "@mui/material";
+import { KeyboardArrowDown, KeyboardArrowUp } from "@mui/icons-material";
 import PropTypes from "prop-types";
+import CreateEvent from "./CreateEvent";
+import CreateTicketType from "./CreateTicketType";
 
-const CreateEvent = ({ eventData, setEventData, venues, handleSubmit, events, handleCreateTicketType }) => {
-  const handleChange = (e) => {
-    const { name, value } = e.target;
-    setEventData({ ...eventData, [name]: value });
+const Events = ({ events, ticketTypes, venues, handleCreateEvent, handleCreateTicketType }) => {
+  const [open, setOpen] = useState(false);
+  const [openNewEventModal, setOpenNewEventModal] = useState(false);
+  const [openNewTicketTypeModal, setOpenNewTicketTypeModal] = useState(false);
+
+  const handleOpenNewEventModal = () => setOpenNewEventModal(true);
+  const handleCloseNewEventModal = () => setOpenNewEventModal(false);
+
+  const handleOpenNewTicketTypeModal = () => setOpenNewTicketTypeModal(true);
+  const handleCloseNewTicketTypeModal = () => setOpenNewTicketTypeModal(false);
+
+  const handleClick = (eventId) => {
+    setOpen((prevOpen) => ({
+      ...prevOpen,
+      [eventId]: !prevOpen[eventId],
+    }));
   };
 
-  const isFormValid = eventData.name && eventData.date && eventData.time && eventData.venueId;
-
-  const [ticketTypeData, setTicketTypeData] = useState({
-    price: "",
-    ticketName: "",
-    description: "",
-    eventId: "",
-  });
-
-  const handleChangeTicketType = (e) => {
-    const { name, value } = e.target;
-    setTicketTypeData({ ...ticketTypeData, [name]: value });
+  const getTicketTypesForEvent = (eventId) => {
+    return ticketTypes.filter((type) => type.event.eventId.toString() === eventId);
   };
-
-  const isTicketTypeFormValid = ticketTypeData.price && ticketTypeData.ticketName && ticketTypeData.description && ticketTypeData.eventId;
 
   return (
-    <Container>
-      <h1>Create Event</h1>
-      <form onSubmit={handleSubmit}>
-        <TextField label="Event Name" name="name" value={eventData.name} onChange={handleChange} margin="normal" fullWidth />
-        <TextField
-          label="Date"
-          name="date"
-          type="date"
-          value={eventData.date}
-          onChange={handleChange}
-          margin="normal"
-          fullWidth
-          InputLabelProps={{
-            shrink: true,
-          }}
-        />
-        <TextField
-          label="Time"
-          name="time"
-          type="time"
-          value={eventData.time}
-          onChange={handleChange}
-          margin="normal"
-          fullWidth
-          InputLabelProps={{
-            shrink: true,
-          }}
-        />
-        <FormControl fullWidth margin="normal">
-          <InputLabel id="venue-label">Venue</InputLabel>
-          <Select labelId="venue-label" name="venueId" value={eventData.venueId} onChange={handleChange} label="Venue">
-            <MenuItem value="">
-              <em>None</em>
-            </MenuItem>
-            {venues.map((venue) => (
-              <MenuItem key={venue.venueId} value={venue.venueId.toString()}>
-                {venue.name}
-              </MenuItem>
-            ))}
-          </Select>
-        </FormControl>
-        <Button type="submit" variant="contained" color="primary" disabled={!isFormValid}>
-          Create Event
-        </Button>
-      </form>
-      <h2>Create Ticket Type</h2>
-      <form onSubmit={(e) => handleCreateTicketType(e, ticketTypeData)}>
-        <FormControl fullWidth margin="normal">
-          <InputLabel id="event-select-label">Event</InputLabel>
-          <Select labelId="event-select-label" name="eventId" value={ticketTypeData.eventId} onChange={handleChangeTicketType} label="Event">
+    <>
+      <h1>Events</h1>
+      <Button variant="contained" color="primary" onClick={handleOpenNewEventModal}>
+        New Event
+      </Button>
+      <Button variant="contained" color="primary" onClick={handleOpenNewTicketTypeModal} sx={{ m: 2 }}>
+        New Ticket Type
+      </Button>
+      <TableContainer component={Paper}>
+        <Table aria-label="events data">
+          <TableHead>
+            <TableRow>
+              <TableCell />
+              <TableCell>Event ID</TableCell>
+              <TableCell>Name</TableCell>
+              <TableCell>Date</TableCell>
+              <TableCell>Time</TableCell>
+              <TableCell>Venue</TableCell>
+            </TableRow>
+          </TableHead>
+          <TableBody>
             {events.map((event) => (
-              <MenuItem key={event.eventId} value={event.eventId}>
-                {event.name}
-              </MenuItem>
+              <React.Fragment key={event.eventId}>
+                <TableRow sx={{ "& > *": { borderBottom: "unset" } }}>
+                  <TableCell>
+                    <IconButton size="small" onClick={() => handleClick(event.eventId)}>
+                      {open[event.eventId] ? <KeyboardArrowUp /> : <KeyboardArrowDown />}
+                    </IconButton>
+                  </TableCell>
+                  <TableCell>{event.eventId}</TableCell>
+                  <TableCell>{event.name}</TableCell>
+                  <TableCell>{event.date}</TableCell>
+                  <TableCell>{event.time}</TableCell>
+                  <TableCell>{event.venue.name}</TableCell>
+                </TableRow>
+                <TableRow>
+                  <TableCell style={{ paddingBottom: 0, paddingTop: 0 }} colSpan={12}>
+                    <Collapse in={open[event.eventId]} timeout="auto" unmountOnExit>
+                      <Box margin={1}>
+                        <Table size="small" aria-label="ticket types">
+                          <TableBody>
+                            {getTicketTypesForEvent(event.eventId.toString()).map((ticketType) => (
+                              <TableRow key={ticketType.ticketTypeId}>
+                                <TableCell component="th" scope="row">
+                                  Ticket Type: {ticketType.ticketName}
+                                </TableCell>
+                                <TableCell>Description: {ticketType.description}</TableCell>
+                                <TableCell>Price: ${ticketType.price.toFixed(2)}</TableCell>
+                              </TableRow>
+                            ))}
+                          </TableBody>
+                        </Table>
+                      </Box>
+                    </Collapse>
+                  </TableCell>
+                </TableRow>
+              </React.Fragment>
             ))}
-          </Select>
-        </FormControl>
-        <TextField
-          label="Ticket Name"
-          name="ticketName"
-          value={ticketTypeData.ticketName}
-          onChange={handleChangeTicketType}
-          margin="normal"
-          fullWidth
-        />
-        <TextField
-          label="Description"
-          name="description"
-          value={ticketTypeData.description}
-          onChange={handleChangeTicketType}
-          margin="normal"
-          fullWidth
-        />
-        <TextField
-          label="Price"
-          name="price"
-          type="number"
-          value={ticketTypeData.price}
-          onChange={handleChangeTicketType}
-          margin="normal"
-          fullWidth
-        />
-
-        <Button type="submit" variant="contained" color="primary" disabled={!isTicketTypeFormValid}>
-          Create Ticket Type
-        </Button>
-      </form>
-    </Container>
+          </TableBody>
+        </Table>
+      </TableContainer>
+      <CreateEvent open={openNewEventModal} handleClose={handleCloseNewEventModal} venues={venues} handleCreateEvent={handleCreateEvent} />
+      <CreateTicketType
+        open={openNewTicketTypeModal}
+        handleClose={handleCloseNewTicketTypeModal}
+        events={events}
+        handleCreateTicketType={handleCreateTicketType}
+      />
+    </>
   );
 };
 
-CreateEvent.propTypes = {
-  eventData: PropTypes.shape({
-    name: PropTypes.string.isRequired,
-    date: PropTypes.string.isRequired,
-    time: PropTypes.string.isRequired,
-    venueId: PropTypes.oneOfType([PropTypes.string, PropTypes.number]).isRequired,
-  }).isRequired,
-  setEventData: PropTypes.func.isRequired,
+Events.propTypes = {
+  events: PropTypes.arrayOf(
+    PropTypes.shape({
+      eventId: PropTypes.number.isRequired,
+      name: PropTypes.string.isRequired,
+      date: PropTypes.string.isRequired,
+      time: PropTypes.string.isRequired,
+      venue: PropTypes.shape({
+        name: PropTypes.string.isRequired,
+      }).isRequired,
+    })
+  ).isRequired,
+  ticketTypes: PropTypes.arrayOf(
+    PropTypes.shape({
+      ticketTypeId: PropTypes.number.isRequired,
+      ticketName: PropTypes.string.isRequired,
+      description: PropTypes.string.isRequired,
+      price: PropTypes.number.isRequired,
+      event: PropTypes.shape({
+        eventId: PropTypes.number.isRequired,
+      }).isRequired,
+    })
+  ).isRequired,
   venues: PropTypes.arrayOf(
     PropTypes.shape({
       venueId: PropTypes.number.isRequired,
@@ -133,14 +132,8 @@ CreateEvent.propTypes = {
       capacity: PropTypes.number,
     })
   ).isRequired,
-  handleSubmit: PropTypes.func.isRequired,
-  events: PropTypes.arrayOf(
-    PropTypes.shape({
-      eventId: PropTypes.number.isRequired,
-      name: PropTypes.string.isRequired,
-    })
-  ).isRequired,
+  handleCreateEvent: PropTypes.func.isRequired,
   handleCreateTicketType: PropTypes.func.isRequired,
 };
 
-export default CreateEvent;
+export default Events;

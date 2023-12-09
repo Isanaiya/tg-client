@@ -1,10 +1,21 @@
 import React, { useState } from "react";
-import { Table, TableBody, TableCell, TableContainer, TableHead, TableRow, Paper, Collapse, Box, IconButton } from "@mui/material";
+import { Table, TableBody, TableCell, TableContainer, TableHead, TableRow, Paper, Collapse, Box, IconButton, TablePagination } from "@mui/material";
 import { KeyboardArrowDown, KeyboardArrowUp } from "@mui/icons-material";
 import PropTypes from "prop-types";
 
 const PurchaseHistory = ({ sales }) => {
   const [open, setOpen] = useState({});
+  const [page, setPage] = useState(0);
+  const [rowsPerPage, setRowsPerPage] = useState(10);
+
+  const handleChangePage = (event, newPage) => {
+    setPage(newPage);
+  };
+
+  const handleChangeRowsPerPage = (event) => {
+    setRowsPerPage(parseInt(event.target.value, 10));
+    setPage(0);
+  };
 
   const handleClick = (saleId) => {
     setOpen((prevOpen) => ({
@@ -15,7 +26,6 @@ const PurchaseHistory = ({ sales }) => {
 
   return (
     <>
-      {" "}
       <h1>Purchase History</h1>
       <TableContainer component={Paper}>
         <Table aria-label="sales data">
@@ -33,52 +43,64 @@ const PurchaseHistory = ({ sales }) => {
             </TableRow>
           </TableHead>
           <TableBody>
-            {[...sales].reverse().map((sale) => (
-              <React.Fragment key={sale.saleEventId}>
-                <TableRow sx={{ "& > *": { borderBottom: "unset" } }}>
-                  <TableCell>
-                    <IconButton size="small" onClick={() => handleClick(sale.saleEventId)}>
-                      {open[sale.saleEventId] ? <KeyboardArrowUp /> : <KeyboardArrowDown />}
-                    </IconButton>
-                  </TableCell>
-                  <TableCell>{sale.saleEventId}</TableCell>
-                  <TableCell>{sale.saleDate}</TableCell>
-                  <TableCell>{sale.saleTime}</TableCell>
-                  <TableCell>{sale.amount}</TableCell>
-                  <TableCell> {sale.ticketList[0]?.event.name}</TableCell>
-                  <TableCell>
-                    {sale.ticketList[0]?.event.venue.name}, {sale.ticketList[0]?.event.venue.address}, {sale.ticketList[0]?.event.venue.city}
-                  </TableCell>
-                  <TableCell>
-                    {sale.ticketList[0]?.ticketType.ticketName} - {sale.ticketList[0]?.ticketType.description}
-                  </TableCell>
-                  <TableCell>${sale.ticketList[0]?.ticketType.price.toFixed(2)}</TableCell>
-                </TableRow>
-                <TableRow>
-                  <TableCell style={{ paddingBottom: 0, paddingTop: 0 }} colSpan={12}>
-                    <Collapse in={open[sale.saleEventId]} timeout="auto" unmountOnExit>
-                      <Box margin={1}>
-                        <Table size="small" aria-label="purchase details">
-                          <TableBody>
-                            {sale.ticketList.map((ticket) => (
-                              <TableRow key={ticket.ticketId}>
-                                <TableCell component="th" scope="row">
-                                  Ticket ID: {ticket.ticketId}
-                                </TableCell>
-                                <TableCell>Barcode: {ticket.barcode}</TableCell>
-                                <TableCell>Checked In: {ticket.isChecked ? "Yes" : "No"}</TableCell>
-                              </TableRow>
-                            ))}
-                          </TableBody>
-                        </Table>
-                      </Box>
-                    </Collapse>
-                  </TableCell>
-                </TableRow>
-              </React.Fragment>
-            ))}
+            {sales
+              .slice(page * rowsPerPage, page * rowsPerPage + rowsPerPage)
+              .reverse()
+              .map((sale) => (
+                <React.Fragment key={sale.saleEventId}>
+                  <TableRow sx={{ "& > *": { borderBottom: "unset" } }}>
+                    <TableCell>
+                      <IconButton size="small" onClick={() => handleClick(sale.saleEventId)}>
+                        {open[sale.saleEventId] ? <KeyboardArrowUp /> : <KeyboardArrowDown />}
+                      </IconButton>
+                    </TableCell>
+                    <TableCell>{sale.saleEventId}</TableCell>
+                    <TableCell>{sale.saleDate}</TableCell>
+                    <TableCell>{sale.saleTime}</TableCell>
+                    <TableCell>{sale.amount}</TableCell>
+                    <TableCell> {sale.ticketList[0]?.event.name}</TableCell>
+                    <TableCell>
+                      {sale.ticketList[0]?.event.venue.name}, {sale.ticketList[0]?.event.venue.address}, {sale.ticketList[0]?.event.venue.city}
+                    </TableCell>
+                    <TableCell>
+                      {sale.ticketList[0]?.ticketType.ticketName} - {sale.ticketList[0]?.ticketType.description}
+                    </TableCell>
+                    <TableCell>${sale.ticketList[0]?.ticketType.price.toFixed(2)}</TableCell>
+                  </TableRow>
+                  <TableRow>
+                    <TableCell style={{ paddingBottom: 0, paddingTop: 0 }} colSpan={12}>
+                      <Collapse in={open[sale.saleEventId]} timeout="auto" unmountOnExit>
+                        <Box margin={1}>
+                          <Table size="small" aria-label="purchase details">
+                            <TableBody>
+                              {sale.ticketList.map((ticket) => (
+                                <TableRow key={ticket.ticketId}>
+                                  <TableCell component="th" scope="row">
+                                    Ticket ID: {ticket.ticketId}
+                                  </TableCell>
+                                  <TableCell>Barcode: {ticket.barcode}</TableCell>
+                                  <TableCell>Checked In: {ticket.isChecked ? "Yes" : "No"}</TableCell>
+                                </TableRow>
+                              ))}
+                            </TableBody>
+                          </Table>
+                        </Box>
+                      </Collapse>
+                    </TableCell>
+                  </TableRow>
+                </React.Fragment>
+              ))}
           </TableBody>
         </Table>
+        <TablePagination
+          rowsPerPageOptions={[10, 25, 100]}
+          component="div"
+          count={sales.length}
+          rowsPerPage={rowsPerPage}
+          page={page}
+          onPageChange={handleChangePage}
+          onRowsPerPageChange={handleChangeRowsPerPage}
+        />
       </TableContainer>
     </>
   );

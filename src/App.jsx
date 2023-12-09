@@ -1,9 +1,11 @@
 import { useState, useEffect } from "react";
-import axios from "axios";
-import { Container, Alert, Snackbar, Tabs, Tab, Box, Button } from "@mui/material";
+import { Container, Alert, Snackbar, AppBar, Toolbar, Tabs, Tab, Box, Button, Typography } from "@mui/material";
 import BuyTickets from "./components/BuyTickets";
 import PurchaseHistory from "./components/PurchaseHistory";
-import CreateEvent from "./components/Events";
+import Events from "./components/Events";
+import Venues from "./components/Venues";
+import LoginScreen from "./components/LoginScreen";
+import { api, setCredentials as setApiCredentials } from "../api";
 
 function App() {
   const [credentials, setCredentials] = useState({ username: "", password: "" });
@@ -20,26 +22,11 @@ function App() {
     severity: "success",
   });
   const [currentTab, setCurrentTab] = useState("buyTickets");
-  const onLoginSuccess = () => {
-    setLoggedIn(true);
-    fetchEventsAndTicketTypes();
-    fetchSalesData();
-    fetchEventsAndVenueCapacity();
-  };
+  const [loginError, setLoginError] = useState("");
 
-  const promptForCredentials = () => {
-    const username = window.prompt("Enter your username");
-    const password = window.prompt("Enter your password");
-    setCredentials({ username, password });
-  };
-
-  const setupAxiosInterceptors = (creds) => {
-    axios.interceptors.request.use((config) => {
-      const token = `Basic ${btoa(`${creds.username}:${creds.password}`)}`;
-      config.headers.Authorization = token;
-      return config;
-    });
-  };
+  useEffect(() => {
+    setApiCredentials(credentials.username, credentials.password);
+  }, [credentials]);
 
   const [salesData, setSalesData] = useState({
     amount: "",
@@ -53,35 +40,45 @@ function App() {
     venueId: "",
   });
 
-  const login = async () => {
+  const onLoginSuccess = () => {
+    setLoggedIn(true);
+    fetchDataPostLogin();
+  };
+
+  useEffect(() => {
+    if (credentials.username && credentials.password) {
+      performLogin();
+    }
+  }, [credentials]);
+
+  const handleLogin = (role, password) => {
+    setCredentials({ username: role, password: password });
+  };
+
+  const performLogin = async () => {
     try {
-      const response = await axios.get("https://ticketguru-tg.rahtiapp.fi/api/events");
-      console.log("Login response:", response);
-      onLoginSuccess();
+      const response = await api.get("/api/events");
+      console.log("Login response:", response.status);
+      if (response.status === 200) {
+        onLoginSuccess();
+        setLoginError("");
+      }
     } catch (error) {
       console.error("Login error:", error);
+      const errorMessage =
+        error.response && error.response.status === 401 ? "Incorrect username or password." : "Login failed. Please try again later.";
+      setLoginError(errorMessage);
     }
   };
 
-  const logout = () => {
+  const handleLogout = () => {
     setCredentials({ username: "", password: "" });
     setLoggedIn(false);
-    axios.interceptors.request.use((config) => {
-      delete config.headers.Authorization;
-      return config;
-    });
     setSales([]);
     setEvents([]);
     setVenues([]);
     setTicketTypes([]);
   };
-
-  useEffect(() => {
-    if (credentials.username && credentials.password) {
-      setupAxiosInterceptors(credentials);
-      login();
-    }
-  }, [credentials]);
 
   const handleTabChange = (event, newValue) => {
     setCurrentTab(newValue);
@@ -106,22 +103,18 @@ function App() {
 
   const fetchSalesData = async () => {
     try {
-      const response = await axios.get("https://ticketguru-tg.rahtiapp.fi/api/sales");
+      const response = await api.get("/api/sales");
       setSales(response.data);
     } catch (error) {
       console.error("Error fetching sales data: ", error);
     }
   };
 
-  useEffect(() => {
+  const fetchDataPostLogin = () => {
+    fetchEventsAndTicketTypes();
     fetchSalesData();
-  }, []);
-
-  useEffect(() => {
-    if (eventsWithCapacity.length > 0) {
-      updateTicketsSold();
-    }
-  }, [eventsWithCapacity]);
+    fetchEventsAndVenueCapacity();
+  };
 
   const handleSalesSubmit = async (e) => {
     e.preventDefault();
@@ -132,7 +125,7 @@ function App() {
     };
 
     try {
-      const postResponse = await axios.post("https://ticketguru-tg.rahtiapp.fi/api/sales", {
+      const postResponse = await api.post("/api/sales", {
         amount: ticketData.ticketAmount,
         ticketList: [
           {
@@ -148,7 +141,7 @@ function App() {
 
       const saleEventId = postResponse.data.saleEventId;
       if (saleEventId) {
-        const getResponse = await axios.get(`https://ticketguru-tg.rahtiapp.fi/api/sales/${saleEventId}`);
+        const getResponse = await api.get(`/api/sales/${saleEventId}`);
         setTicket(getResponse.data);
       }
       setSnackbar({ open: true, message: "Purchase successful!", severity: "success" });
@@ -158,7 +151,7 @@ function App() {
     }
   };
 
-  const handleEventSubmit = async (e) => {
+  const handleCreateEvent = async (e, eventData) => {
     e.preventDefault();
 
     const payload = {
@@ -168,8 +161,9 @@ function App() {
       venue: { venueId: parseInt(eventData.venueId) },
     };
 
+    console.log(payload);
     try {
-      const response = await axios.post("https://ticketguru-tg.rahtiapp.fi/api/events", payload, {});
+      const response = await api.post("/api/events", payload, {});
       setSnackbar({ open: true, message: "Event created successfully!", severity: "success" });
       setEventData({
         name: "",
@@ -199,7 +193,7 @@ function App() {
     };
 
     try {
-      const response = await axios.post("https://ticketguru-tg.rahtiapp.fi/api/tickettypes", payload);
+      const response = await api.post("/api/tickettypes", payload);
       console.log("Ticket type created:", response.data);
       setSnackbar({ open: true, message: "Ticket type created successfully!", severity: "success" });
     } catch (error) {
@@ -208,14 +202,26 @@ function App() {
     }
   };
 
+  const handleCreateVenue = async (e, venueData) => {
+    e.preventDefault();
+    try {
+      const response = await api.post("/api/venues", venueData);
+      console.log("Venue created:", response.data);
+      setSnackbar({ open: true, message: "Venue created successfully!", severity: "success" });
+    } catch (error) {
+      console.error("Failed to create venue:", error);
+      setSnackbar({ open: true, message: "Failed to create venue.", severity: "error" });
+    }
+  };
+
   const fetchEventsAndTicketTypes = async () => {
     try {
-      const eventsResponse = await axios.get("https://ticketguru-tg.rahtiapp.fi/api/events");
+      const eventsResponse = await api.get("/api/events");
       setEvents(eventsResponse.data);
-      const ticketTypesResponse = await axios.get("https://ticketguru-tg.rahtiapp.fi/api/tickettypes");
+      const ticketTypesResponse = await api.get("/api/tickettypes");
       setTicketTypes(ticketTypesResponse.data);
 
-      const venuesResponse = await axios.get("https://ticketguru-tg.rahtiapp.fi/api/venues");
+      const venuesResponse = await api.get("/api/venues");
       setVenues(venuesResponse.data);
     } catch (error) {
       console.error("Error fetching data: ", error);
@@ -224,7 +230,7 @@ function App() {
 
   const fetchEventsAndVenueCapacity = async () => {
     try {
-      const eventsResponse = await axios.get("https://ticketguru-tg.rahtiapp.fi/api/events");
+      const eventsResponse = await api.get("/api/events");
       const eventsWithCapacityData = eventsResponse.data.map((event) => ({
         ...event,
         ticketsSold: 0,
@@ -233,29 +239,6 @@ function App() {
       setEventsWithCapacity(eventsWithCapacityData);
     } catch (error) {
       console.error("Error fetching events: ", error);
-    }
-  };
-
-  const updateTicketsSold = async () => {
-    try {
-      const salesResponse = await axios.get("https://ticketguru-tg.rahtiapp.fi/api/sales");
-      const salesData = salesResponse.data;
-
-      const updatedEvents = eventsWithCapacity.map((event) => {
-        const ticketsSoldForEvent = salesData.reduce((acc, sale) => {
-          return sale.ticketList.some((ticket) => ticket.event.eventId === event.eventId) ? acc + sale.amount : acc;
-        }, 0);
-
-        return {
-          ...event,
-          ticketsSold: ticketsSoldForEvent,
-          ticketsAvailable: Math.max(event.venue.capacity - ticketsSoldForEvent, 0),
-        };
-      });
-
-      setEventsWithCapacity(updatedEvents);
-    } catch (error) {
-      console.error("Error fetching sales data: ", error);
     }
   };
 
@@ -268,7 +251,7 @@ function App() {
 
   const renderTabContent = () => {
     if (!loggedIn) {
-      return <div>Please login</div>;
+      return <LoginScreen onLogin={handleLogin} error={loginError} />;
     }
     switch (currentTab) {
       case "buyTickets":
@@ -283,10 +266,13 @@ function App() {
               ticketTypes,
               ticket,
             }}
+            setEventsWithCapacity={setEventsWithCapacity}
           />
         );
-      case "createEvent":
-        return <CreateEvent {...{ eventData, setEventData, venues, handleSubmit: handleEventSubmit, events, handleCreateTicketType }} />;
+      case "eventsList":
+        return <Events {...{ eventData, ticketTypes, setEventData, venues, handleCreateEvent, events, handleCreateTicketType }} />;
+      case "venuesList":
+        return <Venues venues={venues} handleCreateVenue={handleCreateVenue} />;
       case "purchaseHistory":
         return <PurchaseHistory {...{ sales }} />;
       default:
@@ -295,26 +281,59 @@ function App() {
   };
 
   return (
-    <Container>
-      <Snackbar
-        open={snackbar.open}
-        autoHideDuration={6000}
-        onClose={handleCloseSnackbar}
-        anchorOrigin={{ vertical: "bottom", horizontal: "center" }}
-      >
-        <Alert onClose={handleCloseSnackbar} severity={snackbar.severity} sx={{ width: "100%" }}>
-          {snackbar.message}
-        </Alert>
-      </Snackbar>
-      {loggedIn ? <Button onClick={logout}>Logout</Button> : <Button onClick={promptForCredentials}>Login</Button>}
-      <Tabs value={currentTab} onChange={handleTabChange} centered>
-        <Tab label="Buy Tickets" value="buyTickets" />
-        <Tab label="Create Event" value="createEvent" />
-        <Tab label="Purchase History" value="purchaseHistory" />
-      </Tabs>
+    <>
+      <AppBar position="fixed">
+        <Toolbar>
+          <Typography
+            variant="h6"
+            noWrap
+            component="a"
+            sx={{
+              mr: 2,
+              display: { xs: "none", md: "flex" },
+              fontFamily: "monospace",
+              fontWeight: 700,
+              letterSpacing: ".3rem",
+              color: "inherit",
+              textDecoration: "none",
+            }}
+          >
+            TICKETGURU
+          </Typography>
 
-      <Box sx={{ paddingTop: 2 }}>{renderTabContent()}</Box>
-    </Container>
+          {loggedIn ? (
+            <>
+              <Tabs value={currentTab} onChange={handleTabChange} centered textColor="inherit">
+                <Tab label="Buy Tickets" value="buyTickets" />
+                <Tab label="Events" value="eventsList" />
+                <Tab label="Venues" value="venuesList" />
+                <Tab label="Purchase History" value="purchaseHistory" />
+              </Tabs>
+              <Box flexGrow={1} /> {/* This Box pushes the following elements to the right */}
+              <Button onClick={handleLogout} color="inherit">
+                Logout
+              </Button>
+            </>
+          ) : (
+            <></>
+          )}
+        </Toolbar>
+      </AppBar>
+      <Container>
+        <Snackbar
+          open={snackbar.open}
+          autoHideDuration={6000}
+          onClose={handleCloseSnackbar}
+          anchorOrigin={{ vertical: "bottom", horizontal: "center" }}
+        >
+          <Alert onClose={handleCloseSnackbar} severity={snackbar.severity} sx={{ width: "100%" }}>
+            {snackbar.message}
+          </Alert>
+        </Snackbar>
+
+        <Box sx={{ paddingTop: 2 }}>{renderTabContent()}</Box>
+      </Container>
+    </>
   );
 }
 

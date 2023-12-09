@@ -1,9 +1,51 @@
-import { TextField, Button, Select, MenuItem, InputLabel, FormControl, Box } from "@mui/material";
+import { useState } from "react";
+import { TextField, Button, Select, MenuItem, InputLabel, FormControl, Box, Autocomplete } from "@mui/material";
 import PropTypes from "prop-types";
 import QRCode from "qrcode.react";
+import { useEffect } from "react";
+import { api } from "../../api";
 
-const BuyTickets = ({ data, handleChange, handleSubmit: handleSalesSubmit, events, ticketTypes, ticket }) => {
-  const selectedEvent = events.find((event) => event.eventId.toString() === data.eventId);
+const BuyTickets = ({ data, handleChange, handleSubmit: handleSalesSubmit, events, ticketTypes, ticket, setEventsWithCapacity }) => {
+  const selectedEvent = events.find((e) => e.eventId.toString() === data.eventId);
+
+  const [inputValue, setInputValue] = useState("");
+
+  useEffect(() => {
+    const matchingEvent = events.find((e) => e.eventId.toString() === data.eventId);
+    setInputValue(matchingEvent ? `${matchingEvent.name} - ${matchingEvent.date}` : "");
+  }, [data.eventId, events]);
+
+  useEffect(() => {
+    if (data.eventId) {
+      updateTicketsSoldForEvent(data.eventId);
+    }
+  }, [data.eventId, events]);
+
+  const updateTicketsSoldForEvent = async (eventId) => {
+    try {
+      const salesResponse = await api.get("/api/sales");
+      const salesData = salesResponse.data;
+
+      const updatedEvents = events.map((event) => {
+        if (event.eventId.toString() === eventId) {
+          const ticketsSoldForEvent = salesData.reduce((acc, sale) => {
+            return sale.ticketList.some((ticket) => ticket.event.eventId.toString() === eventId) ? acc + sale.amount : acc;
+          }, 0);
+
+          return {
+            ...event,
+            ticketsSold: ticketsSoldForEvent,
+            ticketsAvailable: Math.max(event.venue.capacity - ticketsSoldForEvent, 0),
+          };
+        }
+        return event;
+      });
+
+      setEventsWithCapacity(updatedEvents);
+    } catch (error) {
+      console.error("Error updating tickets sold for event:", error);
+    }
+  };
 
   return (
     <>
@@ -11,19 +53,23 @@ const BuyTickets = ({ data, handleChange, handleSubmit: handleSalesSubmit, event
       <form style={{ width: 500 }} onSubmit={handleSalesSubmit}>
         <TextField label="Amount" type="text" name="amount" value={data.amount} onChange={handleChange} margin="normal" fullWidth />
 
-        <FormControl fullWidth margin="normal">
-          <InputLabel id="event-label">Event ID</InputLabel>
-          <Select labelId="event-label" id="event-select" name="eventId" value={data.eventId} onChange={handleChange} label="Event ID">
-            <MenuItem value="">
-              <em>Select Event</em>
-            </MenuItem>
-            {events.map((event) => (
-              <MenuItem key={event.eventId} value={event.eventId.toString()}>
-                {event.name} - {event.date}
-              </MenuItem>
-            ))}
-          </Select>
-        </FormControl>
+        <Autocomplete
+          value={events.find((event) => event.eventId.toString() === data.eventId) || null}
+          onChange={(event, newValue) => {
+            handleChange({
+              target: { name: "eventId", value: newValue ? newValue.eventId.toString() : "" },
+            });
+          }}
+          inputValue={inputValue}
+          onInputChange={(event, newInputValue) => {
+            setInputValue(newInputValue);
+          }}
+          options={events}
+          getOptionLabel={(option) => `${option.name} - ${option.date}`}
+          renderInput={(params) => <TextField {...params} label="Event ID" margin="normal" />}
+          fullWidth
+          margin="normal"
+        />
 
         <FormControl fullWidth margin="normal">
           <InputLabel id="ticket-type-label">Ticket Type</InputLabel>
@@ -48,7 +94,7 @@ const BuyTickets = ({ data, handleChange, handleSubmit: handleSalesSubmit, event
           </Select>
         </FormControl>
         {selectedEvent && <p>Tickets Available: {selectedEvent.ticketsAvailable}</p>}
-        <Button type="submit" variant="contained" color="primary" disabled={!data.eventId || !data.ticketTypeId || !data.amount}>
+        <Button type="submit" variant="contained" color="primary" disabled={!data.eventId || !data.ticketTypeId || !data.amount} sx={{ my: 2 }}>
           Buy
         </Button>
       </form>
@@ -121,6 +167,15 @@ BuyTickets.propTypes = {
     saleDate: PropTypes.string,
     saleTime: PropTypes.string,
     amount: PropTypes.number,
+    event: PropTypes.shape({
+      eventId: PropTypes.number,
+      name: PropTypes.string,
+      date: PropTypes.string,
+      time: PropTypes.string,
+      venue: PropTypes.shape({
+        name: PropTypes.string,
+      }),
+    }),
     ticketList: PropTypes.arrayOf(
       PropTypes.shape({
         ticketId: PropTypes.number,
@@ -144,6 +199,7 @@ BuyTickets.propTypes = {
       })
     ),
   }),
+  setEventsWithCapacity: PropTypes.func.isRequired,
 };
 
 export default BuyTickets;
