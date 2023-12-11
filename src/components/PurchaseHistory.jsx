@@ -1,5 +1,18 @@
 import React, { useState } from "react";
-import { Table, TableBody, TableCell, TableContainer, TableHead, TableRow, Paper, Collapse, Box, IconButton, TablePagination } from "@mui/material";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableContainer,
+  TableHead,
+  TableRow,
+  Paper,
+  Collapse,
+  Box,
+  IconButton,
+  TablePagination,
+  Button,
+} from "@mui/material";
 import { KeyboardArrowDown, KeyboardArrowUp } from "@mui/icons-material";
 import PropTypes from "prop-types";
 
@@ -7,6 +20,24 @@ const PurchaseHistory = ({ sales }) => {
   const [open, setOpen] = useState({});
   const [page, setPage] = useState(0);
   const [rowsPerPage, setRowsPerPage] = useState(10);
+  const [sortField, setSortField] = useState("saleDate"); // Default sorting field
+  const [sortOrder, setSortOrder] = useState("asc"); // Default sorting order
+
+  const handleSort = (field) => {
+    const isAsc = sortField === field && sortOrder === "asc";
+    setSortOrder(isAsc ? "desc" : "asc");
+    setSortField(field);
+  };
+
+  const sortedSales = [...sales].sort((a, b) => {
+    if (a[sortField] < b[sortField]) {
+      return sortOrder === "asc" ? -1 : 1;
+    }
+    if (a[sortField] > b[sortField]) {
+      return sortOrder === "asc" ? 1 : -1;
+    }
+    return 0;
+  });
 
   const handleChangePage = (event, newPage) => {
     setPage(newPage);
@@ -24,6 +55,35 @@ const PurchaseHistory = ({ sales }) => {
     }));
   };
 
+  const handlePrintTickets = (sale) => {
+    // Generate print layout for the given sale
+    const printLayout = generatePrintLayout(sale);
+    const printWindow = window.open("", "", "width=900,height=650");
+    printWindow.document.write(printLayout);
+    printWindow.document.close();
+    printWindow.focus();
+    setTimeout(() => {
+      printWindow.print();
+      printWindow.close();
+    }, 500);
+  };
+
+  const generatePrintLayout = (sale) => {
+    // Generate a layout for printing tickets of a specific sale
+    return sale.ticketList
+      .map(
+        (ticket, index) =>
+          `<div key=${index} style="page-break-after: always; padding: 20px;">
+        <h3>Ticket ID: ${ticket.ticketId}</h3>
+        <p>Event: ${ticket.event.name}</p>
+        <p>Venue: ${ticket.event.venue.name}</p>
+        <p>Ticket Type: ${ticket.ticketType.ticketName}</p>
+        <p>Barcode: ${ticket.barcode}</p>
+      </div>`
+      )
+      .join("");
+  };
+
   return (
     <>
       <h1>Purchase History</h1>
@@ -31,19 +91,36 @@ const PurchaseHistory = ({ sales }) => {
         <Table aria-label="sales data">
           <TableHead>
             <TableRow>
-              <TableCell />
-              <TableCell>Sale ID</TableCell>
-              <TableCell>Date</TableCell>
-              <TableCell>Time</TableCell>
-              <TableCell>Amount</TableCell>
-              <TableCell>Event</TableCell>
-              <TableCell>Venue</TableCell>
-              <TableCell>Ticket Type</TableCell>
-              <TableCell>Price</TableCell>
+              <TableCell /> {/* This is for the expand/collapse icon, not sortable */}
+              <TableCell onClick={() => handleSort("saleEventId")} style={{ cursor: "pointer" }}>
+                Sale ID
+              </TableCell>
+              <TableCell onClick={() => handleSort("saleDate")} style={{ cursor: "pointer" }}>
+                Date
+              </TableCell>
+              <TableCell onClick={() => handleSort("saleTime")} style={{ cursor: "pointer" }}>
+                Time
+              </TableCell>
+              <TableCell onClick={() => handleSort("amount")} style={{ cursor: "pointer" }}>
+                Amount
+              </TableCell>
+              <TableCell onClick={() => handleSort("eventName")} style={{ cursor: "pointer" }}>
+                Event
+              </TableCell>
+              <TableCell onClick={() => handleSort("venueName")} style={{ cursor: "pointer" }}>
+                Venue
+              </TableCell>
+              <TableCell onClick={() => handleSort("ticketTypeName")} style={{ cursor: "pointer" }}>
+                Ticket Type
+              </TableCell>
+              <TableCell onClick={() => handleSort("price")} style={{ cursor: "pointer" }}>
+                Price
+              </TableCell>
             </TableRow>
           </TableHead>
+
           <TableBody>
-            {sales
+            {sortedSales
               .slice(page * rowsPerPage, page * rowsPerPage + rowsPerPage)
               .reverse()
               .map((sale) => (
@@ -66,6 +143,11 @@ const PurchaseHistory = ({ sales }) => {
                       {sale.ticketList[0]?.ticketType.ticketName} - {sale.ticketList[0]?.ticketType.description}
                     </TableCell>
                     <TableCell>${sale.ticketList[0]?.ticketType.price.toFixed(2)}</TableCell>
+                    <TableCell>
+                      <Button onClick={() => handlePrintTickets(sale)} variant="contained" color="secondary">
+                        Print Tickets
+                      </Button>
+                    </TableCell>
                   </TableRow>
                   <TableRow>
                     <TableCell style={{ paddingBottom: 0, paddingTop: 0 }} colSpan={12}>

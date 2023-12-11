@@ -7,6 +7,7 @@ import { api } from "../../api";
 
 const BuyTickets = ({ data, handleChange, handleSubmit: handleSalesSubmit, events, ticketTypes, ticket, setEventsWithCapacity }) => {
   const selectedEvent = events.find((e) => e.eventId.toString() === data.eventId);
+  const selectedTicketType = ticketTypes.find((type) => type.ticketTypeId.toString() === data.ticketTypeId);
 
   const [inputValue, setInputValue] = useState("");
 
@@ -45,6 +46,57 @@ const BuyTickets = ({ data, handleChange, handleSubmit: handleSalesSubmit, event
     } catch (error) {
       console.error("Error updating tickets sold for event:", error);
     }
+  };
+
+  const totalTickets = parseInt(data.amount, 10) || 0;
+  const pricePerTicket = selectedTicketType ? selectedTicketType.price : 0;
+  const totalPrice = totalTickets * pricePerTicket;
+
+  const TicketPrintLayout = ({ tickets }) => {
+    if (!tickets) {
+      return null;
+    }
+
+    return (
+      <div style={{ display: "none" }} id="print-section">
+        {tickets.map((ticket, index) => (
+          <div key={index} style={{ pageBreakAfter: "always", padding: "20px" }}>
+            {/* Display ticket details here */}
+            <h3>Ticket ID: {ticket.ticketId}</h3>
+            <p>Event: {ticket.event.name}</p>
+            <p>Date: {ticket.event.date}</p>
+            <p>Venue: {ticket.event.venue.name}</p>
+            <p>Ticket Type: {ticket.ticketType.ticketName}</p>
+            <text>dadadada</text>
+            <QRCode value={ticket.barcode} size={128} includeMargin={true} className="qrcode-canvas" />
+          </div>
+        ))}
+      </div>
+    );
+  };
+
+  const handlePrint = () => {
+    convertQRCodesToImages();
+
+    setTimeout(() => {
+      const printContent = document.getElementById("print-section");
+      const WinPrint = window.open("", "", "width=900,height=650");
+      WinPrint.document.write(printContent.innerHTML);
+      WinPrint.document.close();
+      WinPrint.focus();
+      setTimeout(() => {
+        WinPrint.print();
+        WinPrint.close();
+      }, 500); // Delay to ensure QR codes are rendered
+    }, 500); // Delay to ensure QR codes are converted
+  };
+
+  const convertQRCodesToImages = () => {
+    document.querySelectorAll(".qrcode-canvas").forEach((canvas) => {
+      const img = document.createElement("img");
+      img.src = canvas.toDataURL("image/png");
+      canvas.replaceWith(img);
+    });
   };
 
   return (
@@ -88,15 +140,30 @@ const BuyTickets = ({ data, handleChange, handleSubmit: handleSalesSubmit, event
               .filter((type) => type.event.eventId.toString() === data.eventId)
               .map((type) => (
                 <MenuItem key={type.ticketTypeId} value={type.ticketTypeId.toString()}>
-                  {type.ticketName} - {type.description}
+                  {type.ticketName} - {type.description} - {type.price} €
                 </MenuItem>
               ))}
           </Select>
         </FormControl>
         {selectedEvent && <p>Tickets Available: {selectedEvent.ticketsAvailable}</p>}
+        {selectedTicketType && (
+          <>
+            <p>Price per Ticket: ${pricePerTicket.toFixed(2)}</p>
+            <p>Total Tickets: {totalTickets}</p>
+            <p>Total Price: ${totalPrice.toFixed(2)}</p>
+          </>
+        )}
         <Button type="submit" variant="contained" color="primary" disabled={!data.eventId || !data.ticketTypeId || !data.amount} sx={{ my: 2 }}>
           Buy
         </Button>
+        {ticket && ticket.ticketList && (
+          <>
+            <Button variant="contained" color="secondary" onClick={handlePrint} sx={{ m: 2 }}>
+              Print Tickets
+            </Button>
+            <TicketPrintLayout tickets={ticket.ticketList} />
+          </>
+        )}
       </form>
 
       {ticket && (
@@ -129,6 +196,7 @@ const BuyTickets = ({ data, handleChange, handleSubmit: handleSalesSubmit, event
                     </>
                   )}
                   <QRCode value={ticketItem.barcode} size={128} includeMargin={true} />
+                  <QRCode value={ticketItem.barcode} size={128} includeMargin={true} className="qrcode-canvas" />
                 </Box>
               ))}
         </Box>
