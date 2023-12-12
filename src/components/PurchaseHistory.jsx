@@ -142,7 +142,7 @@ const PurchaseHistory = ({ sales }) => {
                     <TableCell>
                       {sale.ticketList[0]?.ticketType.ticketName} - {sale.ticketList[0]?.ticketType.description}
                     </TableCell>
-                    <TableCell>${sale.ticketList[0]?.ticketType.price.toFixed(2)}</TableCell>
+                    <TableCell>{sale.ticketList[0]?.ticketType.price.toFixed(2)}€</TableCell>
                     <TableCell>
                       <Button onClick={() => handlePrintTickets(sale)} variant="contained" color="secondary">
                         Print Tickets
