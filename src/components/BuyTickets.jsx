@@ -147,9 +147,9 @@ const BuyTickets = ({ data, handleChange, handleSubmit: handleSalesSubmit, event
         {selectedEvent && <p>Tickets Available: {selectedEvent.ticketsAvailable}</p>}
         {selectedTicketType && (
           <>
-            <p>Price per Ticket: ${pricePerTicket.toFixed(2)}</p>
+            <p>Price per Ticket: {pricePerTicket.toFixed(2)} €</p>
             <p>Total Tickets: {totalTickets}</p>
-            <p>Total Price: ${totalPrice.toFixed(2)}</p>
+            <p>Total Price: {totalPrice.toFixed(2)} €</p>
           </>
         )}
         <Button type="submit" variant="contained" color="primary" disabled={!data.eventId || !data.ticketTypeId || !data.amount} sx={{ my: 2 }}>
@@ -190,7 +190,7 @@ const BuyTickets = ({ data, handleChange, handleSubmit: handleSalesSubmit, event
                   {ticketItem.ticketType && ticketItem.ticketType.ticketTypeId && (
                     <>
                       <p>Ticket Type: {ticketItem.ticketType.ticketName || "N/A"}</p>
-                      <p>Price: {ticketItem.ticketType.price || "N/A"}</p>
+                      <p>Price: {ticketItem.ticketType.price || "N/A"} €</p>
                       <p>Description: {ticketItem.ticketType.description || "N/A"}</p>
                     </>
                   )}
