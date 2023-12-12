@@ -20,8 +20,8 @@ const PurchaseHistory = ({ sales }) => {
   const [open, setOpen] = useState({});
   const [page, setPage] = useState(0);
   const [rowsPerPage, setRowsPerPage] = useState(10);
-  const [sortField, setSortField] = useState("saleDate"); // Default sorting field
-  const [sortOrder, setSortOrder] = useState("asc"); // Default sorting order
+  const [sortField, setSortField] = useState("saleDate");
+  const [sortOrder, setSortOrder] = useState("asc");
 
   const handleSort = (field) => {
     const isAsc = sortField === field && sortOrder === "asc";
@@ -91,7 +91,7 @@ const PurchaseHistory = ({ sales }) => {
         <Table aria-label="sales data">
           <TableHead>
             <TableRow>
-              <TableCell /> {/* This is for the expand/collapse icon, not sortable */}
+              <TableCell />
               <TableCell onClick={() => handleSort("saleEventId")} style={{ cursor: "pointer" }}>
                 Sale ID
               </TableCell>
