@@ -24,7 +24,7 @@ const CreateVenue = ({ open, handleClose, handleCreateVenue }) => {
           padding: "50px",
           outline: "none",
           position: "absolute",
-          borderRadius: "3%",
+          borderRadius: 15,
           top: "50%",
           left: "50%",
           transform: "translate(-50%, -50%)",

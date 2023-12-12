@@ -67,8 +67,7 @@ const BuyTickets = ({ data, handleChange, handleSubmit: handleSalesSubmit, event
             <p>Date: {ticket.event.date}</p>
             <p>Venue: {ticket.event.venue.name}</p>
             <p>Ticket Type: {ticket.ticketType.ticketName}</p>
-            <text>dadadada</text>
-            <QRCode value={ticket.barcode} size={128} includeMargin={true} className="qrcode-canvas" />
+            <QRCode value={ticket.barcode} size={128} includeMargin={true} />
           </div>
         ))}
       </div>
@@ -196,7 +195,6 @@ const BuyTickets = ({ data, handleChange, handleSubmit: handleSalesSubmit, event
                     </>
                   )}
                   <QRCode value={ticketItem.barcode} size={128} includeMargin={true} />
-                  <QRCode value={ticketItem.barcode} size={128} includeMargin={true} className="qrcode-canvas" />
                 </Box>
               ))}
         </Box>
