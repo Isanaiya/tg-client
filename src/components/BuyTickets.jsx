@@ -1,8 +1,7 @@
-import { useState } from "react";
+import { useState, useEffect, useRef } from "react";
 import { TextField, Button, Select, MenuItem, InputLabel, FormControl, Box, Autocomplete } from "@mui/material";
 import PropTypes from "prop-types";
 import QRCode from "qrcode.react";
-import { useEffect } from "react";
 import { api } from "../../api";
 
 const BuyTickets = ({ data, handleChange, handleSubmit: handleSalesSubmit, events, ticketTypes, ticket, setEventsWithCapacity }) => {
@@ -16,11 +15,14 @@ const BuyTickets = ({ data, handleChange, handleSubmit: handleSalesSubmit, event
     setInputValue(matchingEvent ? `${matchingEvent.name} - ${matchingEvent.date}` : "");
   }, [data.eventId, events]);
 
+  const prevEventIdRef = useRef();
+
   useEffect(() => {
-    if (data.eventId) {
+    if (data.eventId && data.eventId !== prevEventIdRef.current) {
       updateTicketsSoldForEvent(data.eventId);
+      prevEventIdRef.current = data.eventId;
     }
-  }, [data.eventId, events]);
+  }, [data.eventId]);
 
   const updateTicketsSoldForEvent = async (eventId) => {
     try {
